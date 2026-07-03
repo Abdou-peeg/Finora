@@ -17,14 +17,13 @@ import type { CompanySettings, Tenant } from "@prisma/client";
 // require.resolve('pdfkit') → '/home/z/.../pdfkit/js/pdfkit.js'
 // dirname = '/home/z/.../pdfkit/js'
 // data dir = dirname + '/data' = '/home/z/.../pdfkit/js/data'
-const PDFKIT_ROOT = path.dirname(require.resolve("pdfkit"));
-const PDFKIT_DATA_DIR = path.join(PDFKIT_ROOT, "data");
-const PDFKIT_DATA_DIR_ALT = path.join(PDFKIT_ROOT, "js", "data");
-
 const AFM_CACHE = new Map<string, Buffer>();
 const AFM_CACHE_STR = new Map<string, string>();
 function preloadAfmFiles() {
   if (AFM_CACHE.size > 0) return;
+  const PDFKIT_ROOT = path.dirname(require.resolve("pdfkit"));
+  const PDFKIT_DATA_DIR = path.join(PDFKIT_ROOT, "data");
+  const PDFKIT_DATA_DIR_ALT = path.join(PDFKIT_ROOT, "js", "data");
   for (const dir of [PDFKIT_DATA_DIR, PDFKIT_DATA_DIR_ALT]) {
     if (!fs.existsSync(dir)) continue;
     for (const entry of fs.readdirSync(dir)) {
@@ -40,7 +39,6 @@ function preloadAfmFiles() {
     }
   }
 }
-
 let _patched = false;
 function patchFsReadFileSync() {
   if (_patched) return;

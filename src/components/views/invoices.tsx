@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, FileText, Wallet, XCircle } from "lucide-react";
+import { Search, FileText, Wallet, XCircle, Download } from "lucide-react";
 import { currency, dateTimeShort, dateShort, StatusBadge } from "@/lib/format";
 import { toast } from "sonner";
 
@@ -91,6 +91,9 @@ export function InvoicesView() {
                         <TableCell><StatusBadge status={inv.status} /></TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => window.open(`/api/invoices/${inv.id}/pdf`, "_blank")} title="Télécharger PDF">
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
                             {["UNPAID", "PARTIAL"].includes(inv.status) && (
                               <Button size="sm" variant="outline" onClick={() => openPay(inv)}><Wallet className="h-3.5 w-3.5 mr-1" /> Régler</Button>
                             )}

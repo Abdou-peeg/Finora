@@ -17,6 +17,10 @@ import { AccountingView } from "@/components/views/accounting";
 import { ReportsView } from "@/components/views/reports";
 import { AdminView } from "@/components/views/admin";
 import { AuditView } from "@/components/views/audit";
+import { CompanySettingsView } from "@/components/views/company-settings";
+import { QuotesView } from "@/components/views/quotes";
+import { PurchaseOrdersView } from "@/components/views/purchase-orders";
+import { DeliveryNotesView } from "@/components/views/delivery-notes";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Home() {
@@ -54,6 +58,10 @@ export default function Home() {
       case "rapports": return <ReportsView />;
       case "admin": return <AdminView />;
       case "audit": return <AuditView />;
+      case "entreprise": return <CompanySettingsView />;
+      case "devis": return <QuotesView />;
+      case "bons-commande": return <PurchaseOrdersView />;
+      case "bons-livraison": return <DeliveryNotesView />;
       default: return <DashboardView />;
     }
   }

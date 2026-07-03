@@ -75,6 +75,9 @@ const PERMISSIONS: Record<AppRole, string[]> = {
     "produits:view",
     "ventes:view",
     "achats:view",
+    "devis:view",
+    "bons:view",
+    "admin:company",
   ],
   VENDEUR: [
     "dashboard:view",
@@ -83,6 +86,8 @@ const PERMISSIONS: Record<AppRole, string[]> = {
     "facturation:view",
     "produits:view",
     "caisse:view",
+    "devis:*",
+    "bons:view",
   ],
   STOCK_MANAGER: [
     "dashboard:view",
@@ -91,6 +96,7 @@ const PERMISSIONS: Record<AppRole, string[]> = {
     "achats:*",
     "fournisseurs:*",
     "ventes:view",
+    "bons:*",
   ],
 };
 

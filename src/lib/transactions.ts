@@ -411,9 +411,9 @@ export async function generateInvoiceFromSale(saleId: string, user: any) {
         saleId: sale.id,
         issueDate: new Date(),
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        subtotal: sale.subtotal,
-        taxTotal: sale.taxTotal,
-        total: sale.total,
+        subtotal: Number(sale.subtotal),
+        taxTotal: Number(sale.taxTotal),
+        total: Number(sale.total),
         paidAmount: 0,
         status: "UNPAID",
       },
@@ -443,7 +443,7 @@ export async function generateInvoiceFromSale(saleId: string, user: any) {
     });
 
     return inv;
-  });
+  }, { timeout: 30000, maxWait: 10000 });
 }
 
 export async function generateInvoiceFromPurchase(purchaseId: string, user: any) {

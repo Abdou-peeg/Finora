@@ -158,3 +158,76 @@ export function useUpdateUser() {
 export function useDeleteUser() {
   return useMutationToast("users", (id: string) => API(`/api/admin/users?id=${id}`, { method: "DELETE" }), "Utilisateur supprimé");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Company settings
+// ─────────────────────────────────────────────────────────────────────────────
+export function useCompany() {
+  return useQuery({ queryKey: ["company"], queryFn: () => API("/api/company") });
+}
+export function useUpdateCompany() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (b: any) => API("/api/company", { method: "PUT", body: JSON.stringify(b) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["company"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
+      toast.success("Paramètres enregistrés");
+    },
+    onError: (e: any) => toast.error(e.message || "Erreur"),
+  }) as any;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Quotes (devis)
+// ─────────────────────────────────────────────────────────────────────────────
+export function useCreateQuote() {
+  return useMutationToast("quotes", (b) => API("/api/quotes", { method: "POST", body: JSON.stringify(b) }), "Devis créé");
+}
+export function useQuoteAction() {
+  return useMutationToast(
+    "quotes",
+    ({ id, action, status }: { id: string; action: string; status?: string }) =>
+      API(`/api/quotes/${id}`, { method: "PATCH", body: JSON.stringify({ action, status }) }),
+    "Action exécutée"
+  );
+}
+export function useDeleteQuote() {
+  return useMutationToast("quotes", (id: string) => API(`/api/quotes/${id}`, { method: "DELETE" }), "Devis supprimé");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Purchase orders (bons de commande)
+// ─────────────────────────────────────────────────────────────────────────────
+export function useCreatePurchaseOrder() {
+  return useMutationToast("purchase-orders", (b) => API("/api/purchase-orders", { method: "POST", body: JSON.stringify(b) }), "Bon de commande créé");
+}
+export function usePurchaseOrderAction() {
+  return useMutationToast(
+    "purchase-orders",
+    ({ id, action, status }: { id: string; action: string; status?: string }) =>
+      API(`/api/purchase-orders/${id}`, { method: "PATCH", body: JSON.stringify({ action, status }) }),
+    "Action exécutée"
+  );
+}
+export function useDeletePurchaseOrder() {
+  return useMutationToast("purchase-orders", (id: string) => API(`/api/purchase-orders/${id}`, { method: "DELETE" }), "Bon supprimé");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delivery notes (bons de livraison)
+// ─────────────────────────────────────────────────────────────────────────────
+export function useCreateDeliveryNote() {
+  return useMutationToast("delivery-notes", (b) => API("/api/delivery-notes", { method: "POST", body: JSON.stringify(b) }), "Bon de livraison créé");
+}
+export function useDeliveryNoteAction() {
+  return useMutationToast(
+    "delivery-notes",
+    ({ id, action, status, receivedBy }: { id: string; action: string; status?: string; receivedBy?: string }) =>
+      API(`/api/delivery-notes/${id}`, { method: "PATCH", body: JSON.stringify({ action, status, receivedBy }) }),
+    "Action exécutée"
+  );
+}
+export function useDeleteDeliveryNote() {
+  return useMutationToast("delivery-notes", (id: string) => API(`/api/delivery-notes/${id}`, { method: "DELETE" }), "Bon supprimé");
+}

@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import {
   LayoutDashboard, Package, Users, Truck, ShoppingCart, Receipt, FileText,
   Wallet, BookOpen, BarChart3, Shield, ScrollText, Layers, Search,
-  LogOut, ChevronDown, Menu, X, CircleDot,
+  LogOut, ChevronDown, Menu, X, CircleDot, Building2, ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,15 +33,18 @@ const NAV_GROUPS = [
     label: "Commercial",
     items: [
       { id: "ventes", label: "Ventes", icon: ShoppingCart, perm: "ventes:view" },
-      { id: "clients", label: "Clients", icon: Users, perm: "clients:view" },
+      { id: "devis", label: "Devis", icon: FileText, perm: "devis:view" },
       { id: "factures", label: "Facturation", icon: FileText, perm: "facturation:view" },
+      { id: "clients", label: "Clients", icon: Users, perm: "clients:view" },
       { id: "produits", label: "Produits", icon: Package, perm: "produits:view" },
+      { id: "bons-livraison", label: "Bons de livraison", icon: Truck, perm: "bons:view" },
     ],
   },
   {
     label: "Achats & Stock",
     items: [
       { id: "achats", label: "Achats", icon: Receipt, perm: "achats:view" },
+      { id: "bons-commande", label: "Bons de commande", icon: ClipboardList, perm: "bons:view" },
       { id: "fournisseurs", label: "Fournisseurs", icon: Truck, perm: "fournisseurs:view" },
     ],
   },
@@ -56,6 +59,7 @@ const NAV_GROUPS = [
   {
     label: "Administration",
     items: [
+      { id: "entreprise", label: "Entreprise", icon: Building2, perm: "admin:company" },
       { id: "admin", label: "Utilisateurs & rôles", icon: Shield, perm: "admin:users" },
     ],
   },
@@ -63,16 +67,15 @@ const NAV_GROUPS = [
 
 function canAccess(role: string, perm: string): boolean {
   if (role === "ADMIN") return true;
-  // Use the same logic as backend — but we don't want to import the full module here.
-  // Re-implement minimal client-side check.
   const ROLE_PERMS: Record<string, string[]> = {
     ADMIN: ["*"],
     COMPTABLE: [
       "dashboard:view", "comptabilite:*", "facturation:*", "tresorerie:*", "caisse:*", "rapports:*",
       "audit:view", "clients:view", "fournisseurs:view", "produits:view", "ventes:view", "achats:view",
+      "devis:view", "bons:view", "admin:company",
     ],
-    VENDEUR: ["dashboard:view", "ventes:*", "clients:*", "facturation:view", "produits:view", "caisse:view"],
-    STOCK_MANAGER: ["dashboard:view", "produits:*", "stock:*", "achats:*", "fournisseurs:*", "ventes:view"],
+    VENDEUR: ["dashboard:view", "ventes:*", "clients:*", "facturation:view", "produits:view", "caisse:view", "devis:*", "bons:view"],
+    STOCK_MANAGER: ["dashboard:view", "produits:*", "stock:*", "achats:*", "fournisseurs:*", "ventes:view", "bons:*"],
   };
   const perms = ROLE_PERMS[role] || [];
   if (perms.includes("*")) return true;

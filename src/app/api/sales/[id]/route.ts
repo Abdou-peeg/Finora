@@ -3,12 +3,13 @@ import { requirePermission } from "@/lib/guard";
 import { db } from "@/lib/db";
 import { confirmSale, generateInvoiceFromSale } from "@/lib/transactions";
 
-export async function PATCH(req: Request) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const g = await requirePermission(req, "ventes:update");
   if (g instanceof NextResponse) return g;
   const { tenantId } = g.user;
   const body = await req.json();
-  const { id, action } = body;
+  const { action } = body;
   const sale = await db.sale.findFirst({ where: { id, tenantId }, include: { tenant: true } });
   if (!sale) return NextResponse.json({ error: "Vente introuvable" }, { status: 404 });
 

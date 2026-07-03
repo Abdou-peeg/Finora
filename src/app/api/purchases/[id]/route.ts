@@ -3,12 +3,13 @@ import { requirePermission } from "@/lib/guard";
 import { db } from "@/lib/db";
 import { confirmPurchase, generateInvoiceFromPurchase } from "@/lib/transactions";
 
-export async function PATCH(req: Request) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const g = await requirePermission(req, "achats:update");
   if (g instanceof NextResponse) return g;
   const { tenantId } = g.user;
   const body = await req.json();
-  const { id, action } = body;
+  const { action } = body;
   const purchase = await db.purchase.findFirst({ where: { id, tenantId }, include: { tenant: true } });
   if (!purchase) return NextResponse.json({ error: "Achat introuvable" }, { status: 404 });
 
@@ -23,7 +24,7 @@ export async function PATCH(req: Request) {
         data: {
           tenantId, userId: g.user.id, userName: g.user.name,
           action: "PURCHASE_CANCELLED", entity: "Purchase", entityId: id,
-          details: `Achat ${purchase.reference} annulé.`,
+          details: `Achat ${purchase.reference} annulée.`,
         },
       });
       return NextResponse.json(updated);

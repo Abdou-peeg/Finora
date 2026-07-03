@@ -1,0 +1,25 @@
+-- Finora: enable Supabase Realtime on all tables
+-- Run once after Prisma db:push
+alter publication supabase_realtime add table "Tenant";
+alter publication supabase_realtime add table "User";
+alter publication supabase_realtime add table "CompanySettings";
+alter publication supabase_realtime add table "Account";
+alter publication supabase_realtime add table "JournalEntry";
+alter publication supabase_realtime add table "JournalEntryLine";
+alter publication supabase_realtime add table "Product";
+alter publication supabase_realtime add table "StockMovement";
+alter publication supabase_realtime add table "Customer";
+alter publication supabase_realtime add table "Supplier";
+alter publication supabase_realtime add table "Sale";
+alter publication supabase_realtime add table "SaleItem";
+alter publication supabase_realtime add table "Purchase";
+alter publication supabase_realtime add table "PurchaseItem";
+alter publication supabase_realtime add table "Invoice";
+alter publication supabase_realtime add table "Quote";
+alter publication supabase_realtime add table "QuoteItem";
+alter publication supabase_realtime add table "PurchaseOrder";
+alter publication supabase_realtime add table "PurchaseOrderItem";
+alter publication supabase_realtime add table "DeliveryNote";
+alter publication supabase_realtime add table "DeliveryNoteItem";
+alter publication supabase_realtime add table "CashEntry";
+alter publication supabase_realtime add table "AuditLog";

@@ -1,0 +1,435 @@
+// Finora ERP SaaS - Multi-tenant schema
+// All monetary amounts stored as Decimal for precision.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TENANT & AUTH
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  legalName String?
+  siret     String?
+  currency  String   @default("XOF")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  products      Product[]
+  customers     Customer[]
+  suppliers     Supplier[]
+  sales         Sale[]
+  purchases     Purchase[]
+  invoices      Invoice[]
+  cashEntries   CashEntry[]
+  journalEntries JournalEntry[]
+  stockMovements StockMovement[]
+  auditLogs     AuditLog[]
+  accounts      Account[]
+}
+
+model User {
+  id            String    @id @default(cuid())
+  tenantId      String
+  email         String    @unique
+  name          String
+  passwordHash  String
+  role          UserRole  @default(VENDEUR)
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  auditLogs     AuditLog[]
+
+  @@index([tenantId])
+}
+
+enum UserRole {
+  ADMIN
+  COMPTABLE
+  VENDEUR
+  STOCK_MANAGER
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACCOUNTING (Comptabilité) — chart of accounts + journal entries
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Account {
+  id        String   @id @default(cuid())
+  tenantId  String
+  code      String   // e.g. 411000 Clients, 401000 Fournisseurs, 707000 Ventes
+  label     String
+  type      AccountType
+  createdAt DateTime @default(now())
+
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  journalLines  JournalEntryLine[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+enum AccountType {
+  ASSET      // Actif
+  LIABILITY  // Passif
+  EQUITY     // Capitaux propres
+  REVENUE    // Produits
+  EXPENSE    // Charges
+}
+
+model JournalEntry {
+  id          String   @id @default(cuid())
+  tenantId    String
+  reference   String   // e.g. VTE-2026-001, ACH-2026-001
+  description String
+  date        DateTime @default(now())
+  source      JournalSource
+  sourceId    String?  // ID of the source record (sale, purchase, etc.)
+  createdAt   DateTime @default(now())
+
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lines       JournalEntryLine[]
+
+  @@index([tenantId])
+  @@index([tenantId, date])
+}
+
+enum JournalSource {
+  SALE
+  PURCHASE
+  INVOICE
+  CASH
+  MANUAL
+}
+
+model JournalEntryLine {
+  id           String   @id @default(cuid())
+  journalEntryId String
+  accountId   String
+  debit       Float
+  credit      Float
+
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account      Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([journalEntryId])
+  @@index([accountId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRODUCTS & STOCK
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Product {
+  id          String   @id @default(cuid())
+  tenantId    String
+  sku         String
+  name        String
+  description String?
+  category    String?
+  unit        String   @default("pièce")
+  salePrice   Float
+  costPrice   Float
+  taxRate     Float    @default(18.0)
+  stockQty    Float    @default(0)
+  minStock    Float    @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  saleItems      SaleItem[]
+  purchaseItems  PurchaseItem[]
+  stockMovements StockMovement[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+}
+
+model StockMovement {
+  id         String      @id @default(cuid())
+  tenantId   String
+  productId  String
+  type       MovementType
+  qty        Float
+  reference  String
+  createdAt  DateTime    @default(now())
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([productId])
+}
+
+enum MovementType {
+  IN   // entrée stock
+  OUT  // sortie stock
+  ADJ  // ajustement
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARTIES — Customers & Suppliers
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Customer {
+  id         String   @id @default(cuid())
+  tenantId   String
+  code       String
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  city       String?
+  country    String?
+  taxId      String?
+  creditLimit Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales     Sale[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model Supplier {
+  id         String   @id @default(cuid())
+  tenantId   String
+  code       String
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  city       String?
+  country    String?
+  taxId      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant     Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchases  Purchase[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SALES & PURCHASES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Sale {
+  id           String     @id @default(cuid())
+  tenantId     String
+  reference    String
+  customerId   String
+  userId       String?
+  date         DateTime   @default(now())
+  status       SaleStatus @default(DRAFT)
+  subtotal     Float
+  taxTotal     Float
+  total        Float
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer     Customer    @relation(fields: [customerId], references: [id])
+  items        SaleItem[]
+  invoice      Invoice?
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([customerId])
+}
+
+enum SaleStatus {
+  DRAFT
+  CONFIRMED
+  INVOICED
+  PAID
+  CANCELLED
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  productId String
+  qty       Float
+  unitPrice Float
+  taxRate   Float
+  lineTotal Float
+
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+}
+
+model Purchase {
+  id           String          @id @default(cuid())
+  tenantId     String
+  reference    String
+  supplierId   String
+  userId       String?
+  date         DateTime        @default(now())
+  status       PurchaseStatus  @default(DRAFT)
+  subtotal     Float
+  taxTotal     Float
+  total        Float
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier     Supplier        @relation(fields: [supplierId], references: [id])
+  items        PurchaseItem[]
+  invoice      Invoice?
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([supplierId])
+}
+
+enum PurchaseStatus {
+  DRAFT
+  CONFIRMED
+  INVOICED
+  PAID
+  CANCELLED
+}
+
+model PurchaseItem {
+  id        String  @id @default(cuid())
+  purchaseId String
+  productId String
+  qty       Float
+  unitPrice Float
+  taxRate   Float
+  lineTotal Float
+
+  purchase  Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@index([purchaseId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INVOICING
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id           String        @id @default(cuid())
+  tenantId     String
+  number       String
+  type         InvoiceType
+  partyType    PartyType
+  partyId      String
+  partyName    String
+  saleId       String?       @unique
+  purchaseId   String?       @unique
+  issueDate    DateTime      @default(now())
+  dueDate      DateTime?
+  subtotal     Float
+  taxTotal     Float
+  total        Float
+  paidAmount   Float       @default(0)
+  status       InvoiceStatus @default(UNPAID)
+  createdAt    DateTime      @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sale         Sale?         @relation(fields: [saleId], references: [id])
+  purchase     Purchase?     @relation(fields: [purchaseId], references: [id])
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+}
+
+enum InvoiceType {
+  CUSTOMER  // facture client
+  SUPPLIER  // facture fournisseur
+}
+
+enum PartyType {
+  CUSTOMER
+  SUPPLIER
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CASH & TREASURY (Caisse & Trésorerie)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CashEntry {
+  id          String         @id @default(cuid())
+  tenantId    String
+  reference   String
+  type        CashType
+  amount      Float
+  label       String
+  source      CashSource
+  sourceId    String?
+  invoiceId   String?
+  date        DateTime       @default(now())
+  balanceAfter Float?
+  createdAt   DateTime       @default(now())
+
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, date])
+}
+
+enum CashType {
+  IN
+  OUT
+}
+
+enum CashSource {
+  SALE
+  PURCHASE
+  INVOICE_PAYMENT
+  MANUAL
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT LOG
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String?
+  userName   String?
+  action     String   // CREATE, UPDATE, DELETE, SALE_CONFIRMED ...
+  entity     String   // Sale, Product, Invoice ...
+  entityId   String?
+  details    String?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, entity])
+  @@index([createdAt])
+}

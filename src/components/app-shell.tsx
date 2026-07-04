@@ -197,7 +197,7 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
 
         <div className="p-3 border-t space-y-2">
   
-    href="https://pay.wave.com/m/M_sn_nMXTyMN2aAMQ/c/sn/?amount=9700"
+    <a href="https://pay.wave.com/m/M_sn_nMXTyMN2aAMQ/c/sn/?amount=9700"
     target="_blank"
     rel="noopener noreferrer"
     className="block"

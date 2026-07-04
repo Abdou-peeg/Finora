@@ -143,23 +143,23 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="rounded-lg overflow-hidden h-8 w-8 flex items-center justify-center bg-white">
-  <img src="/logo-icon.png" alt="Finora" className="h-6 w-6 object-contain" />
-</div>
-<div>
-  <div className="font-bold leading-tight text-[#0d5d4a]">Finora</div>
-  <div className="text-[10px] text-muted-foreground leading-tight">Gestion d'entreprise</div>
-</div>
-<Button
-  variant="ghost"
-  size="icon"
-  className="ml-auto lg:hidden h-8 w-8"
-  onClick={() => setMobileOpen(false)}
->
-  <X className="h-4 w-4" />
-</Button>
+<div className="h-16 flex items-center gap-2.5 px-5 border-b">
+          <div className="rounded-lg overflow-hidden h-8 w-8 flex items-center justify-center bg-white">
+            <img src="/logo-icon.png" alt="Finora" className="h-6 w-6 object-contain" />
+          </div>
+          <div>
+            <div className="font-bold leading-tight text-[#0d5d4a]">Finora</div>
+            <div className="text-[10px] text-muted-foreground leading-tight">Gestion d'entreprise nouvelle génération</div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto lg:hidden h-8 w-8"
+            onClick={() => setMobileOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-
         <nav className="flex-1 overflow-y-auto p-3 space-y-5 scroll-fade">
           {NAV_GROUPS.map((group) => {
             const items = group.items.filter((it) => canAccess(user?.role, it.perm));

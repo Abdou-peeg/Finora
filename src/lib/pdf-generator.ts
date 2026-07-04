@@ -10,25 +10,41 @@ import type { CompanySettings, Tenant } from "@prisma/client";
 
 // pdfkit resolves its built-in font metrics (Helvetica.afm etc.) via
 // path.join(__dirname, 'data', ...). When bundled by Next.js Turbopack,
-// __dirname may resolve to a virtual path that doesn't exist on disk.
-// Workaround: pre-load all AFM files into a Map keyed by filename, then
-// patch fs.readFileSync to redirect pdfkit's reads to our in-memory copies.
+// __dirname (and require.resolve) may resolve to a *numeric internal
+// module id* instead of a real filesystem path — both at build time AND
+// at runtime inside route handlers. Calling path.join()/path.dirname() on
+// that number throws "The path argument must be of type string".
+//
+// Workaround: NEVER call require.resolve("pdfkit") to locate its data
+// directory. Instead, since next.config.ts uses `output: "standalone"`,
+// node_modules is copied verbatim next to the server bundle, so we can
+// build the path ourselves from process.cwd() (with a couple of fallback
+// candidates for different layouts) and pre-load all .afm font metric
+// files into memory up front.
 
-// require.resolve('pdfkit') → '/home/z/.../pdfkit/js/pdfkit.js'
-// dirname = '/home/z/.../pdfkit/js'
-// data dir = dirname + '/data' = '/home/z/.../pdfkit/js/data'
 const AFM_CACHE = new Map<string, Buffer>();
 const AFM_CACHE_STR = new Map<string, string>();
+
+function candidatePdfkitDataDirs(): string[] {
+  const cwd = process.cwd();
+  return [
+    path.join(cwd, "node_modules", "pdfkit", "js", "data"),
+    path.join(cwd, "node_modules", "pdfkit", "data"),
+    path.join(cwd, ".next", "standalone", "node_modules", "pdfkit", "js", "data"),
+    path.join(cwd, ".next", "standalone", "node_modules", "pdfkit", "data"),
+    // Netlify function bundles sometimes land one level up
+    path.join(cwd, "..", "node_modules", "pdfkit", "js", "data"),
+    path.join(cwd, "..", "node_modules", "pdfkit", "data"),
+  ];
+}
+
 function preloadAfmFiles() {
   if (AFM_CACHE.size > 0) return;
-  const PDFKIT_ROOT = path.dirname(require.resolve("pdfkit"));
-  const PDFKIT_DATA_DIR = path.join(PDFKIT_ROOT, "data");
-  const PDFKIT_DATA_DIR_ALT = path.join(PDFKIT_ROOT, "js", "data");
-  for (const dir of [PDFKIT_DATA_DIR, PDFKIT_DATA_DIR_ALT]) {
-    if (!fs.existsSync(dir)) continue;
-    for (const entry of fs.readdirSync(dir)) {
-      if (entry.endsWith(".afm")) {
-        if (!AFM_CACHE.has(entry)) {
+  for (const dir of candidatePdfkitDataDirs()) {
+    try {
+      if (!fs.existsSync(dir)) continue;
+      for (const entry of fs.readdirSync(dir)) {
+        if (entry.endsWith(".afm") && !AFM_CACHE.has(entry)) {
           try {
             const buf = fs.readFileSync(path.join(dir, entry));
             AFM_CACHE.set(entry, buf);
@@ -36,9 +52,10 @@ function preloadAfmFiles() {
           } catch {}
         }
       }
-    }
+    } catch {}
   }
 }
+
 let _patched = false;
 function patchFsReadFileSync() {
   if (_patched) return;
@@ -46,11 +63,21 @@ function patchFsReadFileSync() {
   preloadAfmFiles();
   const origReadFileSync = fs.readFileSync.bind(fs);
   (fs as any).readFileSync = function (p: any, ...args: any[]) {
+    // pdfkit internally does path.join(__dirname, 'data', 'Helvetica.afm').
+    // Under Turbopack __dirname can itself be a bogus value, which makes
+    // path.join throw before we even get here — so we defensively coerce
+    // p to a usable key ourselves rather than trusting it's a real path.
+    let filename: string | null = null;
+    if (typeof p === "string") {
+      filename = path.basename(p);
+    } else if (typeof p === "number") {
+      // Can't recover a filename from a bare module id — nothing to redirect.
+      filename = null;
+    }
     try {
       return origReadFileSync(p, ...args);
     } catch (e: any) {
-      if (typeof p === "string" && p.endsWith(".afm")) {
-        const filename = path.basename(p);
+      if (filename && filename.endsWith(".afm")) {
         const encoding = typeof args[0] === "string" ? args[0] : (typeof args[1] === "string" ? args[1] : null);
         if (encoding && AFM_CACHE_STR.has(filename)) return AFM_CACHE_STR.get(filename);
         if (AFM_CACHE.has(filename)) return AFM_CACHE.get(filename);
@@ -61,46 +88,12 @@ function patchFsReadFileSync() {
 }
 
 let PDFDocument: any = null;
-let _pdfkitPatched = false;
 async function loadPdfKit() {
   if (PDFDocument) return PDFDocument;
   preloadAfmFiles();
-
-  // Patch fs.readFileSync BEFORE importing pdfkit so when pdfkit's module-level
-  // code runs, it sees our patched version.
-  if (!_patched) {
-    _patched = true;
-    const origReadFileSync = fs.readFileSync.bind(fs);
-    (fs as any).readFileSync = function (p: any, ...args: any[]) {
-      try {
-        return origReadFileSync(p, ...args);
-      } catch (e: any) {
-        if (typeof p === "string" && p.endsWith(".afm")) {
-          const filename = path.basename(p);
-          const encoding = typeof args[0] === "string" ? args[0] : (typeof args[1] === "string" ? args[1] : null);
-          if (encoding && AFM_CACHE_STR.has(filename)) return AFM_CACHE_STR.get(filename);
-          if (AFM_CACHE.has(filename)) return AFM_CACHE.get(filename);
-        }
-        throw e;
-      }
-    };
-  }
-
+  patchFsReadFileSync();
   const mod = await import("pdfkit");
   PDFDocument = mod.default || mod;
-
-  // Even after import, pdfkit may have cached __dirname at module load.
-  // Try to also patch any internal font cache if available.
-  if (!_pdfkitPatched) {
-    _pdfkitPatched = true;
-    try {
-      // Some pdfkit versions expose a fontData registry
-      const anyMod = mod as any;
-      if (anyMod.StandardFonts && typeof anyMod.StandardFonts === "object") {
-        // already loaded
-      }
-    } catch {}
-  }
   return PDFDocument;
 }
 
@@ -170,24 +163,6 @@ interface PdfDocInput {
 
 export async function generatePdfDoc(input: PdfDocInput): Promise<Buffer> {
   const Doc = await loadPdfKit();
-  // Ensure pdfkit's data dir is reachable — change cwd temporarily if needed
-  const pdfkitDataDir = path.join(path.dirname(require.resolve("pdfkit")), "data");
-  if (!fs.existsSync(pdfkitDataDir)) {
-    // js/data layout
-    const altDir = path.join(path.dirname(require.resolve("pdfkit")), "js", "data");
-    if (fs.existsSync(altDir)) {
-      // Monkey-patch fs.readFileSync to redirect /ROOT/node_modules/pdfkit/js/data/* → altDir
-      const origRead = fs.readFileSync;
-      (fs as any).readFileSync = function (p: any, ...args: any[]) {
-        if (typeof p === "string" && p.includes("pdfkit/js/data/")) {
-          const filename = path.basename(p);
-          const redirected = path.join(altDir, filename);
-          if (fs.existsSync(redirected)) return origRead(redirected, ...args);
-        }
-        return origRead(p, ...args);
-      };
-    }
-  }
 
   return new Promise((resolve, reject) => {
     try {

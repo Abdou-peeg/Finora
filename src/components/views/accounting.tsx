@@ -24,8 +24,8 @@ export function AccountingView() {
 
   const entries = data?.entries ?? [];
   const accounts = (data?.accounts ?? []) as any[];
-  const totalDebit = accounts.reduce((s, a) => s + a.debit, 0);
-  const totalCredit = accounts.reduce((s, a) => s + a.credit, 0);
+  const totalDebit = accounts.reduce((s, a) => s + Number(a.debit), 0);
+  const totalCredit = accounts.reduce((s, a) => s + Number(a.credit), 0);
 
   return (
     <div className="space-y-5">
@@ -89,7 +89,7 @@ export function AccountingView() {
                 <p className="text-sm text-muted-foreground py-8 text-center">Aucune écriture. Les ventes et achats confirmés apparaîtront ici.</p>
               ) : (
                 entries.map((je: any) => {
-                  const totalDebit = je.lines.reduce((s: number, l: any) => s + l.debit, 0);
+                  const totalDebit = je.lines.reduce((s: number, l: any) => s + Number(l.debit), 0);
                   return (
                     <div key={je.id} className="rounded-md border p-3">
                       <div className="flex items-start justify-between mb-2 gap-2">

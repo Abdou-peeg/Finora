@@ -147,9 +147,9 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
   <img src="/logo-icon.png" alt="Finora" className="h-6 w-6 object-contain" />
 </div>
             <div className="font-bold leading-tight">Finora</div>
-            <div className="text-[10px] text-muted-foreground leading-tight">ERP SaaS</div>
+            <div className="text-[10px] text-muted-foreground leading-tight">Gestion d'entreprise nouvelle génération</div>
           </div>
-          <Button
+          <Button>
             variant="ghost"
             size="icon"
             className="ml-auto lg:hidden h-8 w-8"

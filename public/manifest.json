@@ -1,0 +1,17 @@
+{
+  "name": "Finora — ERP SaaS",
+  "short_name": "Finora",
+  "description": "Plateforme de gestion d'entreprise unifiée — comptabilité, ventes, achats, stocks, facturation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

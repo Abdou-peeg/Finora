@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   description:
     "Finora centralise toute la gestion d'entreprise dans une plateforme unifiée synchronisée en temps réel : comptabilité, ventes, achats, stocks, facturation, trésorerie.",
   icons: { icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg" },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

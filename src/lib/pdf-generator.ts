@@ -260,8 +260,8 @@ export async function generatePdfDoc(input: PdfDocInput): Promise<Buffer> {
 
       // ── Items table ─────────────────────────────────────────────────
       const tableTop = 310;
-      const colX = { ref: 40, name: 110, qty: 320, price: 400, tax: 470, total: 530 };
-      const colW = { ref: 70, name: 210, qty: 80, price: 70, tax: 60, total: 70 };
+      const colX = { ref: 40, name: 105, qty: 302, price: 377, tax: 442, total: 498 };
+      const colW = { ref: 65, name: 197, qty: 75, price: 65, tax: 56, total: 67 };
 
       // Header
       doc.rect(40, tableTop, 525, 22).fill(COLORS.primary);

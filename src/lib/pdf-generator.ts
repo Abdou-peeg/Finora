@@ -115,7 +115,11 @@ const COLORS = {
 
 function money(n: number | any): string {
   const v = typeof n === "number" ? n : Number(n ?? 0);
-  return new Intl.NumberFormat("fr-SN", { maximumFractionDigits: 0 }).format(Math.round(v)) + " FCFA";
+  const formatted = new Intl.NumberFormat("fr-SN", { maximumFractionDigits: 0 }).format(Math.round(v));
+  // Remplace l'espace insécable fine (U+202F) et l'espace insécable normal (U+00A0)
+  // par un espace classique, car la police Helvetica standard de pdfkit
+  // ne supporte pas ces caractères Unicode spéciaux.
+  return formatted.replace(/[\u202F\u00A0]/g, " ") + " FCFA";
 }
 
 function dateFmt(d: Date | string | any): string {

@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard, Package, Users, Truck, ShoppingCart, Receipt, FileText,
-  Wallet, BookOpen, BarChart3, Shield, ScrollText, Layers, Search,
+  Wallet, BookOpen, BarChart3, Shield, ScrollText, Search,
   LogOut, ChevronDown, Menu, X, CircleDot, Building2, ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -143,11 +143,9 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="h-16 flex items-center gap-2.5 px-5 border-b">
-          <div className="rounded-lg bg-primary p-1.5 text-primary-foreground">
-            <Layers className="h-5 w-5" />
-          </div>
-          <div>
+        <div className="rounded-lg overflow-hidden h-8 w-8 flex items-center justify-center bg-white">
+  <img src="/logo-icon.png" alt="Finora" className="h-6 w-6 object-contain" />
+</div>
             <div className="font-bold leading-tight">Finora</div>
             <div className="text-[10px] text-muted-foreground leading-tight">ERP SaaS</div>
           </div>

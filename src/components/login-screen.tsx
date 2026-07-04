@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, ShieldCheck, Zap, Layers, Building2, UserPlus, LogIn } from "lucide-react";
+import { Loader2, ShieldCheck, Zap, Building2, UserPlus, LogIn } from "lucide-react";
 import { SENEGAL_CITIES } from "@/lib/format";
 import { toast } from "sonner";
 
@@ -102,9 +102,9 @@ export function LoginScreen() {
         </div>
         <div className="relative">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-white/15 backdrop-blur p-2.5">
-              <Layers className="h-7 w-7" />
-            </div>
+            <div className="rounded-xl bg-white/95 backdrop-blur p-2.5 h-12 w-12 flex items-center justify-center">
+  <img src="/logo-icon.png" alt="Finora" className="h-9 w-9 object-contain" />
+</div>
             <div>
               <div className="text-2xl font-bold tracking-tight">Finora</div>
               <div className="text-sm text-white/80">ERP SaaS multi-modules — Sénégal</div>
@@ -152,14 +152,14 @@ export function LoginScreen() {
       <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
         <div className="w-full max-w-md space-y-6">
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="rounded-xl bg-primary p-2.5 text-primary-foreground">
-              <Layers className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="text-xl font-bold">Finora</div>
-              <div className="text-xs text-muted-foreground">ERP SaaS — Sénégal</div>
-            </div>
-          </div>
+  <div className="rounded-xl bg-white border p-2.5 h-11 w-11 flex items-center justify-center">
+    <img src="/logo-icon.png" alt="Finora" className="h-8 w-8 object-contain" />
+  </div>
+  <div>
+<div className="text-xl font-bold text-[#0d5d4a]">Finora</div>
+<div className="text-xs text-muted-foreground">Gestion d'entreprise nouvelle génération</div>
+  </div>
+</div>
 
           <Tabs value={mode} onValueChange={(v) => { setMode(v as Mode); setLoginError(null); setSignupError(null); }}>
             <TabsList className="grid w-full grid-cols-2">

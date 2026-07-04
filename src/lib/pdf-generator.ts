@@ -183,7 +183,7 @@ export async function generatePdfDoc(input: PdfDocInput): Promise<Buffer> {
           const dataMatch = input.settings.logo.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
           if (dataMatch) {
             const buf = Buffer.from(dataMatch[2], "base64");
-            doc.image(buf, 40, 40, { fit: [120, 70] });
+            doc.image(buf, 40, 40, { fit: [160, 100] });
             logoY = 120;
           }
         } catch (e) { /* ignore invalid logo */ }

@@ -28,13 +28,13 @@ export async function GET(req: Request) {
   // Revenue & expense by account
   const accountSummary = accounts.map((acc) => {
     const lines = journalLines.filter((l) => l.accountId === acc.id);
-    const debit = lines.reduce((s, l) => s + l.debit, 0);
-    const credit = lines.reduce((s, l) => s + l.credit, 0);
+  const debit = lines.reduce((s, l) => s + Number(l.debit), 0);
+  const credit = lines.reduce((s, l) => s + Number(l.credit), 0);
     return { ...acc, debit, credit, balance: debit - credit };
   });
 
-  const revenue = sales.reduce((s, x) => s + x.subtotal, 0);
-  const cogs = purchases.reduce((s, x) => s + x.subtotal, 0);
+  const revenue = sales.reduce((s, x) => s + Number(x.subtotal), 0);
+  const cogs = purchases.reduce((s, x) => s + Number(x.subtotal), 0);
   const vatCollected = accountSummary.find((a) => a.code === "443000")?.credit ?? 0;
   const vatDeductible = accountSummary.find((a) => a.code === "445000")?.debit ?? 0;
   const grossMargin = revenue - cogs;
@@ -76,7 +76,7 @@ export async function GET(req: Request) {
       vatCollected,
       vatDeductible,
       vatNet,
-      netCash: cashEntries.reduce((s, e) => s + (e.type === "IN" ? e.amount : -e.amount), 0),
+      netCash: cashEntries.reduce((s, e) => s + (e.type === "IN" ? Number(e.amount) : -Number(e.amount)), 0),
     },
     accountSummary,
     topProducts,

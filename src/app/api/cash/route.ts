@@ -12,9 +12,9 @@ export async function GET(req: Request) {
     take: 200,
   });
   const last = items[0];
-  const balance = last?.balanceAfter ?? 0;
-  const totalIn = items.filter((e) => e.type === "IN").reduce((s, e) => s + e.amount, 0);
-  const totalOut = items.filter((e) => e.type === "OUT").reduce((s, e) => s + e.amount, 0);
+  const balance = Number(last?.balanceAfter ?? 0);
+  const totalIn = items.filter((e) => e.type === "IN").reduce((s, e) => s + Number(e.amount), 0);
+  const totalOut = items.filter((e) => e.type === "OUT").reduce((s, e) => s + Number(e.amount), 0);
   return NextResponse.json({ items, balance, totalIn, totalOut, count: items.length });
 }
 
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   if (!amount || amount <= 0) return NextResponse.json({ error: "Montant invalide" }, { status: 400 });
 
   const last = await db.cashEntry.findFirst({ where: { tenantId }, orderBy: { date: "desc" } });
-  const balanceAfter = Math.round(((last?.balanceAfter ?? 0) + (type === "IN" ? amount : -amount)) * 100) / 100;
+  const balanceAfter = Math.round((Number(last?.balanceAfter ?? 0) + (type === "IN" ? amount : -amount)) * 100) / 100;
   const ref = `MAN-${Date.now()}`;
   const created = await db.cashEntry.create({
     data: {

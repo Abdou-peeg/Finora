@@ -30,6 +30,14 @@ const ACCOUNT_CODES = {
   STOCK: "370000", // Stocks de marchandises
 };
 
+// Options par défaut pour toutes les transactions interactives :
+// le timeout par défaut de Prisma (5000 ms) est trop court sur un pooler
+// distant (Supabase eu-central-1) depuis un serveur Netlify + plusieurs
+// requêtes séquentielles. On l'étend à 15s (30s pour la génération de
+// facture qui peut être un peu plus lourde).
+const TX_OPTS = { timeout: 15000, maxWait: 10000 };
+const TX_OPTS_LONG = { timeout: 30000, maxWait: 10000 };
+
 async function getOrCreateAccount(tenantId: string, code: string, label: string, type: any) {
   const existing = await db.account.findUnique({
     where: { tenantId_code: { tenantId, code } },
@@ -172,7 +180,7 @@ export async function confirmSale(saleId: string, user: any) {
     }
 
     return updated;
-  });
+  }, TX_OPTS);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -276,7 +284,7 @@ export async function confirmPurchase(purchaseId: string, user: any) {
     });
 
     return updated;
-  });
+  }, TX_OPTS);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -379,7 +387,7 @@ export async function payInvoice(invoiceId: string, amount: number, user: any) {
     });
 
     return updated;
-  });
+  }, TX_OPTS);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -443,7 +451,7 @@ export async function generateInvoiceFromSale(saleId: string, user: any) {
     });
 
     return inv;
-  }, { timeout: 30000, maxWait: 10000 });
+  }, TX_OPTS_LONG);
 }
 
 export async function generateInvoiceFromPurchase(purchaseId: string, user: any) {
@@ -504,7 +512,7 @@ export async function generateInvoiceFromPurchase(purchaseId: string, user: any)
     });
 
     return inv;
-  });
+  }, TX_OPTS_LONG);
 }
 
 export { nextReference, round2, ACCOUNT_CODES };

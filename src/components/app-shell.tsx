@@ -195,23 +195,34 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
           })}
         </nav>
 
-        <div className="p-3 border-t">
-          <div className="rounded-lg bg-accent/50 p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium">{user?.tenantName || "Tenant"}</span>
-              <span className={cn(
-                "flex items-center gap-1 text-[10px] font-medium",
-                connected ? "text-emerald-600" : "text-muted-foreground"
-              )}>
-                <CircleDot className={cn("h-2.5 w-2.5", connected && "pulse-dot text-emerald-500")} />
-                {connected ? "Live" : "Hors ligne"}
-              </span>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              Synchronisation temps réel active sur tous les modules.
-            </p>
-          </div>
-        </div>
+        <div className="p-3 border-t space-y-2">
+  
+    href="https://pay.wave.com/m/M_sn_nMXTyMN2aAMQ/c/sn/?amount=9700"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="block"
+  >
+    <Button className="w-full bg-[#0d5d4a] hover:bg-[#0a4a3b] text-white gap-2">
+      <Wallet className="h-4 w-4" />
+      Acheter l'application — 9 700 FCFA
+    </Button>
+  </a>
+  <div className="rounded-lg bg-accent/50 p-3">
+    <div className="flex items-center justify-between mb-1">
+      <span className="text-xs font-medium">{user?.tenantName || "Tenant"}</span>
+      <span className={cn(
+        "flex items-center gap-1 text-[10px] font-medium",
+        connected ? "text-emerald-600" : "text-muted-foreground"
+      )}>
+        <CircleDot className={cn("h-2.5 w-2.5", connected && "pulse-dot text-emerald-500")} />
+        {connected ? "Live" : "Hors ligne"}
+      </span>
+    </div>
+    <p className="text-[10px] text-muted-foreground">
+      Synchronisation temps réel active sur tous les modules.
+    </p>
+  </div>
+</div>
       </aside>
 
       {/* Mobile overlay */}

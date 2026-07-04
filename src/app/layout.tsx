@@ -5,9 +5,9 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { AppProviders } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "Finora — ERP SaaS multi-modules",
+  title: "Finora",
   description:
-    "Finora centralise toute la gestion d'entreprise dans une plateforme unifiée synchronisée en temps réel : comptabilité, ventes, achats, stocks, facturation, trésorerie.",
+    "Finora centralise toute la gestion d'entreprise dans une plateforme unifiée.",
   icons: { icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg" },
   manifest: "/manifest.json",
 };

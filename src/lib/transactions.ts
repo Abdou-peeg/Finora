@@ -7,6 +7,14 @@
  * invoicing, cash, stock, accounting) goes through ONE Prisma `$transaction`
  * here so we never leave the database in a partial state.
  *
+ * IMPORTANT — Prisma Decimal fields:
+ * Several numeric columns (subtotal, taxTotal, total, paidAmount, stockQty,
+ * amount, balanceAfter, debit, credit, etc.) are declared as `Decimal` in
+ * schema.prisma. Prisma returns these as Prisma.Decimal objects, NOT plain
+ * JS numbers. Using `+`, `-`, `<`, `<=` directly on them silently produces
+ * wrong results instead of throwing — so every value coming from the DB is
+ * wrapped in Number(...) (via the n() helper) before any arithmetic below.
+ *
  * Reference rules:
  *   - Sale confirmation → stock decrement + cash IN + accounting entry
  *   - Purchase confirmation → stock increment + cash OUT (if paid) + accounting entry
@@ -46,6 +54,12 @@ async function getOrCreateAccount(tenantId: string, code: string, label: string,
   return db.account.create({ data: { tenantId, code, label, type } });
 }
 
+// n() convertit systématiquement un champ Decimal (ou toute valeur
+// potentiellement non-numérique renvoyée par Prisma) en vrai number JS.
+function n(v: any): number {
+  return Number(v ?? 0);
+}
+
 function round2(v: number) {
   return Math.round((v + Number.EPSILON) * 100) / 100;
 }
@@ -68,39 +82,44 @@ export async function confirmSale(saleId: string, user: any) {
     if (!sale) throw new Error("Vente introuvable");
     if (sale.status !== "DRAFT") throw new Error(`Vente déjà dans l'état ${sale.status}`);
 
+    const saleTotal = n(sale.total);
+    const saleSubtotal = n(sale.subtotal);
+    const saleTaxTotal = n(sale.taxTotal);
+
     // 1. Stock check + decrement + movement record
     for (const item of sale.items) {
       const product = await tx.product.findUnique({ where: { id: item.productId } });
       if (!product) throw new Error("Produit introuvable");
-      if (product.stockQty < item.qty) {
-        throw new Error(`Stock insuffisant pour ${product.name} (disponible: ${product.stockQty}, requis: ${item.qty})`);
+      const productStock = n(product.stockQty);
+      const itemQty = n(item.qty);
+      if (productStock < itemQty) {
+        throw new Error(`Stock insuffisant pour ${product.name} (disponible: ${productStock}, requis: ${itemQty})`);
       }
-      const newQty = round2(product.stockQty - item.qty);
+      const newQty = round2(productStock - itemQty);
       await tx.product.update({ where: { id: product.id }, data: { stockQty: newQty } });
       await tx.stockMovement.create({
         data: {
           tenantId: sale.tenantId,
           productId: product.id,
           type: "OUT",
-          qty: item.qty,
+          qty: itemQty,
           reference: sale.reference,
         },
       });
     }
 
     // 2. Cash entry (IN)
-    let balanceAfter: number | null = null;
     const lastCash = await tx.cashEntry.findFirst({
       where: { tenantId: sale.tenantId },
       orderBy: { date: "desc" },
     });
-    balanceAfter = round2((lastCash?.balanceAfter ?? 0) + sale.total);
+    const balanceAfter = round2(n(lastCash?.balanceAfter) + saleTotal);
     await tx.cashEntry.create({
       data: {
         tenantId: sale.tenantId,
         reference: `CAISSE-${sale.reference}`,
         type: "IN",
-        amount: sale.total,
+        amount: saleTotal,
         label: `Vente ${sale.reference}`,
         source: "SALE",
         sourceId: sale.id,
@@ -126,9 +145,9 @@ export async function confirmSale(saleId: string, user: any) {
         date: new Date(),
         lines: {
           create: [
-            { accountId: accCaisse.id, debit: sale.total, credit: 0 }, // Débit caisse
-            { accountId: accVentes.id, debit: 0, credit: sale.subtotal }, // Crédit ventes
-            { accountId: accTVA.id, debit: 0, credit: sale.taxTotal }, // Crédit TVA
+            { accountId: accCaisse.id, debit: saleTotal, credit: 0 }, // Débit caisse
+            { accountId: accVentes.id, debit: 0, credit: saleSubtotal }, // Crédit ventes
+            { accountId: accTVA.id, debit: 0, credit: saleTaxTotal }, // Crédit TVA
           ],
         },
       },
@@ -149,7 +168,7 @@ export async function confirmSale(saleId: string, user: any) {
         action: "SALE_CONFIRMED",
         entity: "Sale",
         entityId: sale.id,
-        details: `Vente ${sale.reference} confirmée — total ${sale.total} ${sale.tenant.currency}. Stock mis à jour, caisse alimentée, écriture comptable ${je.reference}.`,
+        details: `Vente ${sale.reference} confirmée — total ${saleTotal} ${sale.tenant.currency}. Stock mis à jour, caisse alimentée, écriture comptable ${je.reference}.`,
       },
     });
 
@@ -159,22 +178,22 @@ export async function confirmSale(saleId: string, user: any) {
       tenantId: sale.tenantId,
       type: "sale.confirmed",
       title: "Vente confirmée",
-      message: `${sale.reference} — ${sale.total} ${sale.tenant.currency} (stock, caisse et compta à jour)`,
+      message: `${sale.reference} — ${saleTotal} ${sale.tenant.currency} (stock, caisse et compta à jour)`,
       level: "success",
-      meta: { saleId: sale.id, reference: sale.reference, total: sale.total },
+      meta: { saleId: sale.id, reference: sale.reference, total: saleTotal },
     });
 
     // Check low stock
     for (const item of sale.items) {
       const p = await tx.product.findUnique({ where: { id: item.productId } });
-      if (p && p.stockQty <= p.minStock) {
+      if (p && n(p.stockQty) <= n(p.minStock)) {
         void notify({
           tenantId: sale.tenantId,
           type: "stock.low",
           title: "Stock bas",
-          message: `${p.name} (${p.sku}) — ${p.stockQty} ${p.unit} restant(s)`,
+          message: `${p.name} (${p.sku}) — ${n(p.stockQty)} ${p.unit} restant(s)`,
           level: "warning",
-          meta: { productId: p.id, qty: p.stockQty },
+          meta: { productId: p.id, qty: n(p.stockQty) },
         });
       }
     }
@@ -195,18 +214,22 @@ export async function confirmPurchase(purchaseId: string, user: any) {
     if (!purchase) throw new Error("Achat introuvable");
     if (purchase.status !== "DRAFT") throw new Error(`Achat déjà dans l'état ${purchase.status}`);
 
+    const purchaseTotal = n(purchase.total);
+    const purchaseSubtotal = n(purchase.subtotal);
+    const purchaseTaxTotal = n(purchase.taxTotal);
+
     // 1. Stock increment + movement
     for (const item of purchase.items) {
       const product = await tx.product.findUnique({ where: { id: item.productId } });
       if (!product) throw new Error("Produit introuvable");
-      const newQty = round2(product.stockQty + item.qty);
+      const newQty = round2(n(product.stockQty) + n(item.qty));
       await tx.product.update({ where: { id: product.id }, data: { stockQty: newQty } });
       await tx.stockMovement.create({
         data: {
           tenantId: purchase.tenantId,
           productId: product.id,
           type: "IN",
-          qty: item.qty,
+          qty: n(item.qty),
           reference: purchase.reference,
         },
       });
@@ -217,13 +240,13 @@ export async function confirmPurchase(purchaseId: string, user: any) {
       where: { tenantId: purchase.tenantId },
       orderBy: { date: "desc" },
     });
-    const balanceAfter = round2((lastCash?.balanceAfter ?? 0) - purchase.total);
+    const balanceAfter = round2(n(lastCash?.balanceAfter) - purchaseTotal);
     await tx.cashEntry.create({
       data: {
         tenantId: purchase.tenantId,
         reference: `CAISSE-${purchase.reference}`,
         type: "OUT",
-        amount: purchase.total,
+        amount: purchaseTotal,
         label: `Achat ${purchase.reference}`,
         source: "PURCHASE",
         sourceId: purchase.id,
@@ -249,9 +272,9 @@ export async function confirmPurchase(purchaseId: string, user: any) {
         date: new Date(),
         lines: {
           create: [
-            { accountId: accAchats.id, debit: purchase.subtotal, credit: 0 },
-            { accountId: accTVA.id, debit: purchase.taxTotal, credit: 0 },
-            { accountId: accCaisse.id, debit: 0, credit: purchase.total },
+            { accountId: accAchats.id, debit: purchaseSubtotal, credit: 0 },
+            { accountId: accTVA.id, debit: purchaseTaxTotal, credit: 0 },
+            { accountId: accCaisse.id, debit: 0, credit: purchaseTotal },
           ],
         },
       },
@@ -270,7 +293,7 @@ export async function confirmPurchase(purchaseId: string, user: any) {
         action: "PURCHASE_CONFIRMED",
         entity: "Purchase",
         entityId: purchase.id,
-        details: `Achat ${purchase.reference} confirmé — total ${purchase.total} ${purchase.tenant.currency}. Stock incrémenté, caisse débitée, écriture ${je.reference}.`,
+        details: `Achat ${purchase.reference} confirmé — total ${purchaseTotal} ${purchase.tenant.currency}. Stock incrémenté, caisse débitée, écriture ${je.reference}.`,
       },
     });
 
@@ -278,7 +301,7 @@ export async function confirmPurchase(purchaseId: string, user: any) {
       tenantId: purchase.tenantId,
       type: "purchase.confirmed",
       title: "Achat confirmé",
-      message: `${purchase.reference} — ${purchase.total} ${purchase.tenant.currency} (stock et compta à jour)`,
+      message: `${purchase.reference} — ${purchaseTotal} ${purchase.tenant.currency} (stock et compta à jour)`,
       level: "success",
       meta: { purchaseId: purchase.id, reference: purchase.reference },
     });
@@ -300,8 +323,12 @@ export async function payInvoice(invoiceId: string, amount: number, user: any) {
     if (inv.status === "PAID" || inv.status === "CANCELLED")
       throw new Error(`Facture déjà ${inv.status}`);
 
-    const newPaid = round2(inv.paidAmount + amount);
-    const remaining = round2(inv.total - newPaid);
+    const amountNum = n(amount);
+    const invTotal = n(inv.total);
+    const invPaidAmount = n(inv.paidAmount);
+
+    const newPaid = round2(invPaidAmount + amountNum);
+    const remaining = round2(invTotal - newPaid);
     const newStatus = remaining <= 0.001 ? "PAID" : "PARTIAL";
 
     const lastCash = await tx.cashEntry.findFirst({
@@ -310,14 +337,14 @@ export async function payInvoice(invoiceId: string, amount: number, user: any) {
     });
     const isCustomerInvoice = inv.type === "CUSTOMER";
     const balanceAfter = round2(
-      (lastCash?.balanceAfter ?? 0) + (isCustomerInvoice ? amount : -amount)
+      n(lastCash?.balanceAfter) + (isCustomerInvoice ? amountNum : -amountNum)
     );
     await tx.cashEntry.create({
       data: {
         tenantId: inv.tenantId,
         reference: `PAY-${inv.number}`,
         type: isCustomerInvoice ? "IN" : "OUT",
-        amount,
+        amount: amountNum,
         label: `Règlement facture ${inv.number}`,
         source: "INVOICE_PAYMENT",
         sourceId: inv.id,
@@ -343,12 +370,12 @@ export async function payInvoice(invoiceId: string, amount: number, user: any) {
         lines: {
           create: isCustomerInvoice
             ? [
-                { accountId: accCaisse.id, debit: amount, credit: 0 },
-                { accountId: accClient.id, debit: 0, credit: amount },
+                { accountId: accCaisse.id, debit: amountNum, credit: 0 },
+                { accountId: accClient.id, debit: 0, credit: amountNum },
               ]
             : [
-                { accountId: accFourn.id, debit: amount, credit: 0 },
-                { accountId: accCaisse.id, debit: 0, credit: amount },
+                { accountId: accFourn.id, debit: amountNum, credit: 0 },
+                { accountId: accCaisse.id, debit: 0, credit: amountNum },
               ],
         },
       },
@@ -373,7 +400,7 @@ export async function payInvoice(invoiceId: string, amount: number, user: any) {
         action: "INVOICE_PAID",
         entity: "Invoice",
         entityId: inv.id,
-        details: `Facture ${inv.number} — règlement de ${amount} ${inv.tenant.currency}. Nouveau solde: ${remaining}. Statut: ${newStatus}. Écriture ${je.reference}.`,
+        details: `Facture ${inv.number} — règlement de ${amountNum} ${inv.tenant.currency}. Nouveau solde: ${remaining}. Statut: ${newStatus}. Écriture ${je.reference}.`,
       },
     });
 
@@ -381,9 +408,9 @@ export async function payInvoice(invoiceId: string, amount: number, user: any) {
       tenantId: inv.tenantId,
       type: "invoice.paid",
       title: "Règlement enregistré",
-      message: `${inv.number} — ${amount} ${inv.tenant.currency} (${newStatus})`,
+      message: `${inv.number} — ${amountNum} ${inv.tenant.currency} (${newStatus})`,
       level: "success",
-      meta: { invoiceId: inv.id, amount },
+      meta: { invoiceId: inv.id, amount: amountNum },
     });
 
     return updated;
@@ -408,6 +435,10 @@ export async function generateInvoiceFromSale(saleId: string, user: any) {
     });
     const number = `FAC-${year}-${String(count + 1).padStart(4, "0")}`;
 
+    const saleTotal = n(sale.total);
+    const saleSubtotal = n(sale.subtotal);
+    const saleTaxTotal = n(sale.taxTotal);
+
     const inv = await tx.invoice.create({
       data: {
         tenantId: sale.tenantId,
@@ -419,9 +450,9 @@ export async function generateInvoiceFromSale(saleId: string, user: any) {
         saleId: sale.id,
         issueDate: new Date(),
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        subtotal: Number(sale.subtotal),
-        taxTotal: Number(sale.taxTotal),
-        total: Number(sale.total),
+        subtotal: saleSubtotal,
+        taxTotal: saleTaxTotal,
+        total: saleTotal,
         paidAmount: 0,
         status: "UNPAID",
       },
@@ -445,7 +476,7 @@ export async function generateInvoiceFromSale(saleId: string, user: any) {
       tenantId: sale.tenantId,
       type: "invoice.created",
       title: "Facture émise",
-      message: `${number} — ${sale.customer.name} — ${sale.total} ${sale.tenant.currency}`,
+      message: `${number} — ${sale.customer.name} — ${saleTotal} ${sale.tenant.currency}`,
       level: "info",
       meta: { invoiceId: inv.id, number },
     });
@@ -469,6 +500,10 @@ export async function generateInvoiceFromPurchase(purchaseId: string, user: any)
     });
     const number = `FF-${year}-${String(count + 1).padStart(4, "0")}`;
 
+    const purchaseTotal = n(purchase.total);
+    const purchaseSubtotal = n(purchase.subtotal);
+    const purchaseTaxTotal = n(purchase.taxTotal);
+
     const inv = await tx.invoice.create({
       data: {
         tenantId: purchase.tenantId,
@@ -480,9 +515,9 @@ export async function generateInvoiceFromPurchase(purchaseId: string, user: any)
         purchaseId: purchase.id,
         issueDate: new Date(),
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        subtotal: purchase.subtotal,
-        taxTotal: purchase.taxTotal,
-        total: purchase.total,
+        subtotal: purchaseSubtotal,
+        taxTotal: purchaseTaxTotal,
+        total: purchaseTotal,
         paidAmount: 0,
         status: "UNPAID",
       },
@@ -506,7 +541,7 @@ export async function generateInvoiceFromPurchase(purchaseId: string, user: any)
       tenantId: purchase.tenantId,
       type: "invoice.created",
       title: "Facture fournisseur reçue",
-      message: `${number} — ${purchase.supplier.name} — ${purchase.total} ${purchase.tenant.currency}`,
+      message: `${number} — ${purchase.supplier.name} — ${purchaseTotal} ${purchase.tenant.currency}`,
       level: "info",
       meta: { invoiceId: inv.id, number },
     });

@@ -144,9 +144,9 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
         )}
       >
 <div className="h-16 flex items-center gap-2.5 px-5 border-b">
-          <div className="rounded-lg overflow-hidden h-8 w-8 flex items-center justify-center bg-white">
-            <img src="/logo-icon.png" alt="Finora" className="h-6 w-6 object-contain" />
-          </div>
+          <div className="rounded-lg overflow-hidden h-11 w-11 flex items-center justify-center bg-white">
+  <img src="/logo-icon.png" alt="Finora" className="h-9 w-9 object-contain" />
+</div>
           <div>
             <div className="font-bold leading-tight text-[#0d5d4a]">Finora</div>
             <div className="text-[10px] text-muted-foreground leading-tight">Gestion d'entreprise nouvelle génération</div>

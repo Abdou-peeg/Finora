@@ -197,14 +197,14 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
 
         <div className="p-3 border-t space-y-2">
   
-    <a href="https://pay.wave.com/m/M_sn_nMXTyMN2aAMQ/c/sn/?amount=9700"
+    <a href="https://pay.wave.com/m/M_sn_nMXTyMN2aAMQ/c/sn/?amount=14900"
     target="_blank"
     rel="noopener noreferrer"
     className="block"
   >
     <Button className="w-full bg-[#0d5d4a] hover:bg-[#0a4a3b] text-white gap-2">
       <Wallet className="h-4 w-4" />
-      Acheter l'application — 9 700 FCFA
+      Acheter — 14 900 FCFA
     </Button>
   </a>
   <div className="rounded-lg bg-accent/50 p-3">

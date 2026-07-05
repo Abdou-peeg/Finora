@@ -10,8 +10,8 @@ const API = (path: string, init?: RequestInit) =>
   }).then(async (r) => {
     const data = await r.json().catch(() => ({}));
     if (r.status === 402 && (data as any).code === "SUBSCRIPTION_EXPIRED") {
-      window.location.reload(); // recharge → page.tsx redétectera l'expiration via la session et affichera le Paywall
-    }
+  throw new Error("Abonnement expiré");
+}
     if (!r.ok) {
       const msg = (data as any).error || `Erreur ${r.status}`;
       throw new Error(msg);

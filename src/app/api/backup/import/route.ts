@@ -56,13 +56,14 @@ export async function POST(req: Request) {
         // internes (customerId, productId, accountId, saleId, etc.) restent valides.
 
         if (d.companySettings) {
-  const { id, tenantId: _t, ...rest } = d.companySettings;
+  const { id, tenantId: _t, createdAt, updatedAt, ...rest } = d.companySettings;
   await tx.companySettings.upsert({
     where: { tenantId },
-    create: { ...rest, id, tenantId },
+    create: { ...rest, tenantId },
     update: { ...rest },
   });
 }
+
 
         if (d.accounts?.length) {
           await tx.account.createMany({

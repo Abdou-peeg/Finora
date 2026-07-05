@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Finora",
   description:
     "Finora centralise toute la gestion d'entreprise dans une plateforme unifiée.",
-  icons: { icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg" },
+  icons: { icon: "/logo-icon.png" },
   manifest: "/manifest.json",
 };
 

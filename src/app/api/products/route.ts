@@ -30,12 +30,13 @@ export async function POST(req: Request) {
   const body = await req.json();
   try {
     const created = await db.product.create({
-      data: {
-        tenantId,
-        sku: body.sku,
-        name: body.name,
-        description: body.description || null,
-        category: body.category || null,
+  data: {
+    tenantId,
+    sku: body.sku,
+    name: body.name,
+    description: body.description || null,
+    imageUrl: body.imageUrl || null,
+    category: body.category || null,
         unit: body.unit || "pièce",
         salePrice: Number(body.salePrice),
         costPrice: Number(body.costPrice),

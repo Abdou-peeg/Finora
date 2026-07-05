@@ -177,6 +177,7 @@ model Product {
   sku         String
   name        String
   description String?
+  imageUrl    String?
   category    String?
   unit        String   @default("pièce")
   salePrice   Decimal  @db.Decimal(14, 2)

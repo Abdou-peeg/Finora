@@ -57,15 +57,22 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Administration",
-    items: [
-      { id: "entreprise", label: "Entreprise", icon: Building2, perm: "admin:company" },
-      { id: "admin", label: "Utilisateurs & rôles", icon: Shield, perm: "admin:users" },
-    ],
-  },
+  label: "Administration",
+  items: [
+    { id: "entreprise", label: "Entreprise", icon: Building2, perm: "admin:company" },
+    { id: "admin", label: "Utilisateurs & rôles", icon: Shield, perm: "admin:users" },
+  ],
+},
+{
+  label: "Plateforme",
+  items: [
+    { id: "plateforme", label: "Clients Finora", icon: Building2, perm: "platform:view" },
+  ],
+},
 ];
 
-function canAccess(role: string, perm: string): boolean {
+function canAccess(role: string, perm: string, isSuperAdmin?: boolean): boolean {
+  if (perm === "platform:view") return !!isSuperAdmin;
   if (role === "ADMIN") return true;
   const ROLE_PERMS: Record<string, string[]> = {
     ADMIN: ["*"],
@@ -162,7 +169,7 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-5 scroll-fade">
           {NAV_GROUPS.map((group) => {
-            const items = group.items.filter((it) => canAccess(user?.role, it.perm));
+            const items = group.items.filter((it) => canAccess(user?.role, it.perm, user?.isSuperAdmin));
             if (items.length === 0) return null;
             return (
               <div key={group.label}>

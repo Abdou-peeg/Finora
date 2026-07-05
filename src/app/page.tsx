@@ -23,9 +23,11 @@ import { PurchaseOrdersView } from "@/components/views/purchase-orders";
 import { DeliveryNotesView } from "@/components/views/delivery-notes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaywallScreen } from "@/components/paywall-screen";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 export default function Home() {
   const { data: session, status } = useSession();
   const [view, setView] = useState<string>("dashboard");
+  const expiredFromApi = useSubscriptionStore((s) => s.expired);
 
 if (status === "loading") {
   return (
@@ -45,10 +47,10 @@ if (status === "loading") {
 }
 
 const user = session.user as any;
-if (user.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) < new Date()) {
+const expiredFromSession = user.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) < new Date();
+if (expiredFromSession || expiredFromApi) {
   return <PaywallScreen />;
 }
-
   function render() {
     switch (view) {
       case "dashboard": return <DashboardView />;

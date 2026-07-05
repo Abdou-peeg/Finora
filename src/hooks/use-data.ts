@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 
 const API = (path: string, init?: RequestInit) =>
   fetch(path, {
@@ -10,8 +11,9 @@ const API = (path: string, init?: RequestInit) =>
   }).then(async (r) => {
     const data = await r.json().catch(() => ({}));
     if (r.status === 402 && (data as any).code === "SUBSCRIPTION_EXPIRED") {
-  throw new Error("Abonnement expiré");
-}
+      useSubscriptionStore.getState().setExpired(true);
+      throw new Error("Abonnement expiré");
+    }
     if (!r.ok) {
       const msg = (data as any).error || `Erreur ${r.status}`;
       throw new Error(msg);

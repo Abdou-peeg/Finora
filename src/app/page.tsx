@@ -22,7 +22,7 @@ import { QuotesView } from "@/components/views/quotes";
 import { PurchaseOrdersView } from "@/components/views/purchase-orders";
 import { DeliveryNotesView } from "@/components/views/delivery-notes";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { PaywallScreen } from "@/components/paywall-screen";
 export default function Home() {
   const { data: session, status } = useSession();
   const [view, setView] = useState<string>("dashboard");
@@ -41,8 +41,13 @@ if (status === "loading") {
 }
 
   if (!session?.user) {
-    return <LoginScreen />;
-  }
+  return <LoginScreen />;
+}
+
+const user = session.user as any;
+if (user.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) < new Date()) {
+  return <PaywallScreen />;
+}
 
   function render() {
     switch (view) {

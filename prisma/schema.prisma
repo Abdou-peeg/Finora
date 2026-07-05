@@ -20,6 +20,8 @@ model Tenant {
   legalName String?
   siret     String?
   currency  String   @default("XOF")
+  subscriptionStatus String @default("active")
+  subscriptionExpiresAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

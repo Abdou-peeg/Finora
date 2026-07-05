@@ -24,35 +24,38 @@ export const authOptions: NextAuthOptions = {
         const ok = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!ok) return null;
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          tenantId: user.tenantId,
-          tenantName: user.tenant.name,
-        } as any;
+  id: user.id,
+  email: user.email,
+  name: user.name,
+  role: user.role,
+  tenantId: user.tenantId,
+  tenantName: user.tenant.name,
+  subscriptionExpiresAt: user.tenant.subscriptionExpiresAt,
+} as any;
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.id = (user as any).id;
-        token.role = (user as any).role;
-        token.tenantId = (user as any).tenantId;
-        token.tenantName = (user as any).tenantName;
-      }
-      return token;
-    },
+  if (user) {
+    token.id = (user as any).id;
+    token.role = (user as any).role;
+    token.tenantId = (user as any).tenantId;
+    token.tenantName = (user as any).tenantName;
+    token.subscriptionExpiresAt = (user as any).subscriptionExpiresAt;
+  }
+  return token;
+},
     async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).tenantId = token.tenantId;
-        (session.user as any).tenantName = token.tenantName;
-      }
-      return session;
-    },
+  if (session.user) {
+    (session.user as any).id = token.id;
+    (session.user as any).role = token.role;
+    (session.user as any).tenantId = token.tenantId;
+    (session.user as any).tenantName = token.tenantName;
+    (session.user as any).subscriptionExpiresAt = token.subscriptionExpiresAt;
+  }
+  return session;
+},
   },
 };
 

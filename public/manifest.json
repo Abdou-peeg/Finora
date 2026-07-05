@@ -1,6 +1,6 @@
 {
   "name": "Finora — Gestion d'entreprise unifiée",
-  "short_name": "Version 1.1",
+  "short_name": "Finora",
   "description": "Plateforme de gestion d'entreprise unifiée — comptabilité, ventes, achats, stocks, facturation",
   "start_url": "/",
   "display": "standalone",

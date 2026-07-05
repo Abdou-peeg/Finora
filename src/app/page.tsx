@@ -29,13 +29,13 @@ export default function Home() {
 
 if (status === "loading") {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0a0e1a]">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-white">
       <img
         src="/logo-icon.png"
         alt="Finora"
         className="h-20 w-20 animate-pulse-scale"
       />
-      <div className="text-white/70 text-sm tracking-wide">Chargement…</div>
+      <div className="text-[#0d5d4a]/70 text-sm tracking-wide">Chargement…</div>
     </div>
   );
 }

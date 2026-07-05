@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "@/hooks/use-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Shield, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, Trash2, Shield, ShieldCheck, Download, Upload, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -28,6 +28,153 @@ const ROLE_COLORS: Record<string, string> = {
   STOCK_MANAGER: "bg-cyan-500",
 };
 const EMPTY = { email: "", name: "", password: "", role: "VENDEUR", active: true };
+
+function BackupSection() {
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [confirmText, setConfirmText] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/backup/export");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Échec de l'export");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const match = disposition.match(/filename="(.+)"/);
+      const filename = match?.[1] || `finora-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Sauvegarde téléchargée");
+    } catch (e: any) {
+      toast.error(e.message || "Échec de l'export");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  function handleFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPendingFile(file);
+    setConfirmText("");
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirmImport() {
+    if (!pendingFile) return;
+    if (confirmText.trim().toUpperCase() !== "RESTAURER") {
+      toast.error('Tapez "RESTAURER" pour confirmer');
+      return;
+    }
+    setImporting(true);
+    try {
+      const text = await pendingFile.text();
+      const json = JSON.parse(text);
+      const res = await fetch("/api/backup/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(json),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Échec de la restauration");
+      toast.success("Données restaurées avec succès. Rechargement…");
+      setConfirmOpen(false);
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (e: any) {
+      toast.error(e.message || "Fichier invalide ou échec de la restauration");
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <div>
+          <p className="font-medium text-sm">Sauvegarde &amp; restauration</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Exportez toutes vos données (produits, clients, ventes, achats, factures, caisse, comptabilité, audit)
+            dans un fichier que vous conservez sur votre appareil. Utile pour changer de compte ou garder une copie de sécurité.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            Télécharger une sauvegarde
+          </Button>
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="h-4 w-4 mr-2" />
+            Restaurer depuis un fichier
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={handleFileChosen}
+          />
+        </div>
+      </CardContent>
+
+      <Dialog open={confirmOpen} onOpenChange={(v) => !importing && setConfirmOpen(v)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
+              <AlertTriangle className="h-5 w-5" /> Restauration destructive
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p>
+              Cette action va <strong>supprimer définitivement</strong> toutes les données actuelles de votre
+              entreprise (produits, clients, ventes, achats, factures, caisse, comptabilité, audit) et les
+              remplacer par le contenu du fichier sélectionné.
+            </p>
+            <p className="text-muted-foreground">
+              Fichier : <span className="font-mono text-xs">{pendingFile?.name}</span>
+            </p>
+            <p>
+              Pour confirmer, tapez <strong>RESTAURER</strong> ci-dessous :
+            </p>
+            <Input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="RESTAURER"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={importing}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmImport}
+              disabled={importing || confirmText.trim().toUpperCase() !== "RESTAURER"}
+            >
+              {importing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Supprimer et restaurer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
 
 export function AdminView() {
   const { data, isLoading } = useUsers();
@@ -149,6 +296,8 @@ export function AdminView() {
           )}
         </CardContent>
       </Card>
+
+      <BackupSection />
 
       <Card>
         <CardContent className="p-4">

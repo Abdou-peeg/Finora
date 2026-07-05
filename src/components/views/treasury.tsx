@@ -33,13 +33,13 @@ export function TreasuryView() {
     const key = d.toISOString().slice(5, 10);
     byDay.set(key, { date: key, in: 0, out: 0 });
   }
-  for (const e of data?.items ?? []) {
-    const key = new Date(e.date).toISOString().slice(5, 10);
-    if (byDay.has(key)) {
-      if (e.type === "IN") byDay.get(key)!.in += e.amount;
-      else byDay.get(key)!.out += e.amount;
-    }
+for (const e of data?.items ?? []) {
+  const key = new Date(e.date).toISOString().slice(5, 10);
+  if (byDay.has(key)) {
+    if (e.type === "IN") byDay.get(key)!.in += Number(e.amount);
+    else byDay.get(key)!.out += Number(e.amount);
   }
+}
   const trend = Array.from(byDay.values()).map((d) => ({ ...d, net: Math.round((d.in - d.out) * 100) / 100 }));
 
   return (

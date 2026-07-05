@@ -31,6 +31,7 @@ export const authOptions: NextAuthOptions = {
   tenantId: user.tenantId,
   tenantName: user.tenant.name,
   subscriptionExpiresAt: user.tenant.subscriptionExpiresAt,
+  isSuperAdmin: user.isSuperAdmin,
 } as any;
       },
     }),
@@ -43,6 +44,7 @@ export const authOptions: NextAuthOptions = {
     token.tenantId = (user as any).tenantId;
     token.tenantName = (user as any).tenantName;
     token.subscriptionExpiresAt = (user as any).subscriptionExpiresAt;
+    token.isSuperAdmin = (user as any).isSuperAdmin;
   }
   return token;
 },
@@ -53,6 +55,7 @@ export const authOptions: NextAuthOptions = {
     (session.user as any).tenantId = token.tenantId;
     (session.user as any).tenantName = token.tenantName;
     (session.user as any).subscriptionExpiresAt = token.subscriptionExpiresAt;
+    (session.user as any).isSuperAdmin = token.isSuperAdmin;
   }
   return session;
 },

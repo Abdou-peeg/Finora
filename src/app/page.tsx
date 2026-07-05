@@ -24,6 +24,7 @@ import { DeliveryNotesView } from "@/components/views/delivery-notes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaywallScreen } from "@/components/paywall-screen";
 import { useSubscriptionStore } from "@/lib/subscription-store";
+import { PlatformView } from "@/components/views/platform";
 export default function Home() {
   const { data: session, status } = useSession();
   const [view, setView] = useState<string>("dashboard");
@@ -70,6 +71,7 @@ if (expiredFromSession || expiredFromApi) {
       case "devis": return <QuotesView />;
       case "bons-commande": return <PurchaseOrdersView />;
       case "bons-livraison": return <DeliveryNotesView />;
+      case "plateforme": return <PlatformView />;
       default: return <DashboardView />;
     }
   }

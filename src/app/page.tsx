@@ -27,17 +27,18 @@ export default function Home() {
   const { data: session, status } = useSession();
   const [view, setView] = useState<string>("dashboard");
 
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="space-y-3 w-72">
-          <Skeleton className="h-10" />
-          <Skeleton className="h-4 w-2/3" />
-          <Skeleton className="h-4 w-3/4" />
-        </div>
-      </div>
-    );
-  }
+if (status === "loading") {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0a0e1a]">
+      <img
+        src="/logo-icon.png"
+        alt="Finora"
+        className="h-20 w-20 animate-pulse-scale"
+      />
+      <div className="text-white/70 text-sm tracking-wide">Chargement…</div>
+    </div>
+  );
+}
 
   if (!session?.user) {
     return <LoginScreen />;

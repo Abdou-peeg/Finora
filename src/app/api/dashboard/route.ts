@@ -61,10 +61,10 @@ export async function GET(req: Request) {
 
   const totalReceivable = invoicesUnpaid
     .filter((i) => i.type === "CUSTOMER")
-    .reduce((s, i) => s + (i.total - i.paidAmount), 0);
+    .reduce((s, i) => s + (Number(i.total) - Number(i.paidAmount)), 0);
   const totalPayable = invoicesUnpaid
     .filter((i) => i.type === "SUPPLIER")
-    .reduce((s, i) => s + (i.total - i.paidAmount), 0);
+    .reduce((s, i) => s + (Number(i.total) - Number(i.paidAmount)), 0);
 
   return NextResponse.json({
     kpis: {

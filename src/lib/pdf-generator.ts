@@ -118,10 +118,16 @@ function ensureSpace(doc: any, y: number, needed = 24): number {
   return y;
 }
 
-/** Dessine le bandeau footer, positionné à une hauteur fixe qui tient toujours
- * dans la page (jamais assez bas pour provoquer un débordement). */
+/** Dessine le bandeau footer tout en bas de la page. PDFKit ajoute automatiquement
+ * une nouvelle page dès qu'un texte est écrit au-delà de (hauteur de page - marge
+ * du bas), même avec des coordonnées x/y explicites — c'est exactement ce qui
+ * causait les pages vides. On neutralise donc temporairement la marge du bas
+ * pendant l'écriture du footer, puis on la restaure. */
 function drawFooter(doc: any, tenant: Tenant, settings: CompanySettings | null) {
-  const footerY = PAGE_HEIGHT - FOOTER_HEIGHT - 8;
+  const originalBottomMargin = doc.page.margins.bottom;
+  doc.page.margins.bottom = 0; // autorise l'écriture jusqu'au bord réel de la page
+
+  const footerY = PAGE_HEIGHT - FOOTER_HEIGHT;
   const footerText = settings?.footerNote
     || `${settings?.legalName || tenant.name}${settings?.rc ? "  •  RC " + settings.rc : ""}${settings?.ninea ? "  •  NINEA " + settings.ninea : ""}`;
   doc.rect(0, footerY, PAGE_WIDTH, FOOTER_HEIGHT).fill(COLORS.primaryLight);
@@ -131,6 +137,8 @@ function drawFooter(doc: any, tenant: Tenant, settings: CompanySettings | null) 
     `Document généré par Finora ERP le ${new Intl.DateTimeFormat("fr-SN", { dateStyle: "long", timeStyle: "short" }).format(new Date())}`,
     40, footerY + 20, { width: 515, align: "center", lineBreak: false, ellipsis: true }
   );
+
+  doc.page.margins.bottom = originalBottomMargin; // restaure pour le contenu de la page suivante
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

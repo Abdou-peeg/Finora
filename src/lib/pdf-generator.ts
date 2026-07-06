@@ -378,9 +378,9 @@ export async function generatePdfDoc(input: PdfDocInput): Promise<Buffer> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// À AJOUTER À LA FIN DE lib/pdf-generator.ts (après generateReportPdfDoc)
+// À AJOUTER À LA FIN DE lib/pdf-generator.ts
 // Génère un PDF simple à partir d'un texte libre (ex: analyse/conseil de Finora AI).
-// Contrairement aux tableaux, on laisse pdfkit paginer naturellement le texte.
+// Version autonome : ne dépend d'aucune fonction externe (drawFooter, etc.).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface TextPdfInput {
@@ -396,7 +396,7 @@ export async function generateTextPdfDoc(input: TextPdfInput): Promise<Buffer> {
 
   return new Promise((resolve, reject) => {
     try {
-      const doc = new Doc({ size: "A4", margin: 50, bufferPages: true, autoFirstPage: true });
+      const doc = new Doc({ size: "A4", margin: 50, bufferPages: true });
       const chunks: Buffer[] = [];
       doc.on("data", (c: any) => chunks.push(c as Buffer));
       doc.on("end", () => resolve(Buffer.concat(chunks)));
@@ -428,12 +428,6 @@ export async function generateTextPdfDoc(input: TextPdfInput): Promise<Buffer> {
         align: "justify",
         lineGap: 3,
       });
-
-      const range = doc.bufferedPageRange();
-      for (let i = 0; i < range.count; i++) {
-        doc.switchToPage(i);
-        drawFooter(doc, input.tenant, input.settings);
-      }
 
       doc.end();
     } catch (e) {

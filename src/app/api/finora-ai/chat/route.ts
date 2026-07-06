@@ -59,6 +59,33 @@ const FUNCTIONS: GeminiFunctionDeclaration[] = [
       required: ["saleReference"],
     },
   },
+    {
+    name: "generate_invoice_from_sale",
+    description: "Génère une facture à partir d'une vente déjà confirmée, en indiquant sa référence (ex: VTE-2026-0004).",
+    parameters: {
+      type: "object",
+      properties: {
+        saleReference: { type: "string", description: "Référence exacte de la vente confirmée" },
+      },
+      required: ["saleReference"],
+    },
+  },
+  {
+    name: "create_product",
+    description: "Ajoute un nouveau produit au catalogue.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nom du produit" },
+        salePrice: { type: "number", description: "Prix de vente HT en FCFA" },
+        costPrice: { type: "number", description: "Prix d'achat HT en FCFA (optionnel, par défaut 0)" },
+        category: { type: "string", description: "Catégorie (optionnel)" },
+        unit: { type: "string", description: "Unité de mesure, ex: pièce, kg (optionnel)" },
+        stockQty: { type: "number", description: "Quantité en stock initial (optionnel, par défaut 0)" },
+      },
+      required: ["name", "salePrice"],
+    },
+  },
 ];
 
 async function buildFinancialContext(tenantId: string) {
@@ -204,6 +231,29 @@ ${financialContext}`;
               actionsSummary.push(`Facture ${inv.number} générée depuis la vente ${args.saleReference}.`);
               responsePayload = { success: true, invoiceNumber: inv.number };
             }
+          }
+
+          else if (call.name === "create_product") {
+            const args = call.args;
+            const count = await db.product.count({ where: { tenantId } });
+            const sku = `SKU-${String(count + 1).padStart(3, "0")}`;
+            const created = await db.product.create({
+              data: {
+                tenantId,
+                sku,
+                name: args.name,
+                salePrice: Number(args.salePrice),
+                costPrice: Number(args.costPrice ?? 0),
+                category: args.category || null,
+                unit: args.unit || "pièce",
+                stockQty: Number(args.stockQty ?? 0),
+              },
+            });
+            await db.auditLog.create({
+              data: { tenantId, userId, userName, action: "CREATE", entity: "Product", entityId: created.id, details: `Produit ${created.name} créé via Finora AI.` },
+            });
+            actionsSummary.push(`Produit "${created.name}" créé (SKU ${created.sku}).`);
+            responsePayload = { success: true, productId: created.id, sku: created.sku };
           }
         } catch (e: any) {
           responsePayload = { success: false, error: e.message };

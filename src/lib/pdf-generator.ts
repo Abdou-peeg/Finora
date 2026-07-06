@@ -1,26 +1,12 @@
 /**
  * Finora PDF generator
  * =====================
- * Generates professional PDFs for: invoices, quotes, purchase orders, delivery notes.
- * Each document embeds the tenant's company settings (logo, address, RC, NINEA, signature).
+ * Generates professional PDFs for: invoices, quotes, purchase orders, delivery notes,
+ * generic finance reports, and free-text analyses (Finora AI).
  */
 import path from "path";
 import fs from "fs";
 import type { CompanySettings, Tenant } from "@prisma/client";
-
-// pdfkit resolves its built-in font metrics (Helvetica.afm etc.) via
-// path.join(__dirname, 'data', ...). When bundled by Next.js Turbopack,
-// __dirname (and require.resolve) may resolve to a *numeric internal
-// module id* instead of a real filesystem path — both at build time AND
-// at runtime inside route handlers. Calling path.join()/path.dirname() on
-// that number throws "The path argument must be of type string".
-//
-// Workaround: NEVER call require.resolve("pdfkit") to locate its data
-// directory. Instead, since next.config.ts uses `output: "standalone"`,
-// node_modules is copied verbatim next to the server bundle, so we can
-// build the path ourselves from process.cwd() (with a couple of fallback
-// candidates for different layouts) and pre-load all .afm font metric
-// files into memory up front.
 
 const AFM_CACHE = new Map<string, Buffer>();
 const AFM_CACHE_STR = new Map<string, string>();
@@ -32,7 +18,6 @@ function candidatePdfkitDataDirs(): string[] {
     path.join(cwd, "node_modules", "pdfkit", "data"),
     path.join(cwd, ".next", "standalone", "node_modules", "pdfkit", "js", "data"),
     path.join(cwd, ".next", "standalone", "node_modules", "pdfkit", "data"),
-    // Netlify function bundles sometimes land one level up
     path.join(cwd, "..", "node_modules", "pdfkit", "js", "data"),
     path.join(cwd, "..", "node_modules", "pdfkit", "data"),
   ];
@@ -63,17 +48,8 @@ function patchFsReadFileSync() {
   preloadAfmFiles();
   const origReadFileSync = fs.readFileSync.bind(fs);
   (fs as any).readFileSync = function (p: any, ...args: any[]) {
-    // pdfkit internally does path.join(__dirname, 'data', 'Helvetica.afm').
-    // Under Turbopack __dirname can itself be a bogus value, which makes
-    // path.join throw before we even get here — so we defensively coerce
-    // p to a usable key ourselves rather than trusting it's a real path.
     let filename: string | null = null;
-    if (typeof p === "string") {
-      filename = path.basename(p);
-    } else if (typeof p === "number") {
-      // Can't recover a filename from a bare module id — nothing to redirect.
-      filename = null;
-    }
+    if (typeof p === "string") filename = path.basename(p);
     try {
       return origReadFileSync(p, ...args);
     } catch (e: any) {
@@ -98,7 +74,7 @@ async function loadPdfKit() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers
+// Helpers communs
 // ─────────────────────────────────────────────────────────────────────────────
 const FONT_REG = "Helvetica";
 const FONT_BOLD = "Helvetica-Bold";
@@ -113,12 +89,18 @@ const COLORS = {
   altRow: "#f5f9f7",
 };
 
+// A4 = 595.28 x 841.89 pt. Avec margin:40, la zone utile va de y=40 à y=801.89.
+// On garde une marge de sécurité pour ne JAMAIS positionner du texte à un endroit
+// qui forcerait pdfkit à créer une page suivante pour terminer l'affichage —
+// c'est exactement ce qui causait les pages vides en fin de document.
+const PAGE_WIDTH = 595.28;
+const PAGE_HEIGHT = 841.89;
+const CONTENT_BOTTOM = 780; // dernière position Y sûre pour commencer à écrire du texte
+const FOOTER_HEIGHT = 42;
+
 function money(n: number | any): string {
   const v = typeof n === "number" ? n : Number(n ?? 0);
   const formatted = new Intl.NumberFormat("fr-SN", { maximumFractionDigits: 0 }).format(Math.round(v));
-  // Remplace l'espace insécable fine (U+202F) et l'espace insécable normal (U+00A0)
-  // par un espace classique, car la police Helvetica standard de pdfkit
-  // ne supporte pas ces caractères Unicode spéciaux.
   return formatted.replace(/[\u202F\u00A0]/g, " ") + " FCFA";
 }
 
@@ -127,6 +109,33 @@ function dateFmt(d: Date | string | any): string {
   return new Intl.DateTimeFormat("fr-SN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(d));
 }
 
+/** Si y dépasse la zone sûre, ajoute une nouvelle page et renvoie le nouveau y de départ. */
+function ensureSpace(doc: any, y: number, needed = 24): number {
+  if (y + needed > CONTENT_BOTTOM) {
+    doc.addPage();
+    return 40;
+  }
+  return y;
+}
+
+/** Dessine le bandeau footer, positionné à une hauteur fixe qui tient toujours
+ * dans la page (jamais assez bas pour provoquer un débordement). */
+function drawFooter(doc: any, tenant: Tenant, settings: CompanySettings | null) {
+  const footerY = PAGE_HEIGHT - FOOTER_HEIGHT - 8;
+  const footerText = settings?.footerNote
+    || `${settings?.legalName || tenant.name}${settings?.rc ? "  •  RC " + settings.rc : ""}${settings?.ninea ? "  •  NINEA " + settings.ninea : ""}`;
+  doc.rect(0, footerY, PAGE_WIDTH, FOOTER_HEIGHT).fill(COLORS.primaryLight);
+  doc.font(FONT_OBL).fontSize(7.5).fillColor(COLORS.muted);
+  doc.text(footerText, 40, footerY + 7, { width: 515, align: "center", lineBreak: false, ellipsis: true });
+  doc.text(
+    `Document généré par Finora ERP le ${new Intl.DateTimeFormat("fr-SN", { dateStyle: "long", timeStyle: "short" }).format(new Date())}`,
+    40, footerY + 20, { width: 515, align: "center", lineBreak: false, ellipsis: true }
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FACTURE / DEVIS / BON DE COMMANDE / BON DE LIVRAISON
+// ─────────────────────────────────────────────────────────────────────────────
 interface DocParty {
   name: string;
   address?: string | null;
@@ -170,30 +179,27 @@ export async function generatePdfDoc(input: PdfDocInput): Promise<Buffer> {
 
   return new Promise((resolve, reject) => {
     try {
-      const doc = new Doc({ size: "A4", margin: 40, bufferPages: true });
+      const doc = new Doc({ size: "A4", margin: 40, bufferPages: true, autoFirstPage: true });
       const chunks: Buffer[] = [];
       doc.on("data", (c: any) => chunks.push(c as Buffer));
       doc.on("end", () => resolve(Buffer.concat(chunks)));
       doc.on("error", reject);
 
-      // ── Header: logo + company block ────────────────────────────────
-      let logoY = 40;
+      // ── Header ────────────────────────────────────────────────────
       if (input.settings?.logo) {
         try {
           const dataMatch = input.settings.logo.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
           if (dataMatch) {
             const buf = Buffer.from(dataMatch[2], "base64");
-            doc.image(buf, 40, 40, { fit: [160, 100] });
-            logoY = 120;
+            doc.image(buf, 40, 40, { fit: [140, 85] });
           }
-        } catch (e) { /* ignore invalid logo */ }
+        } catch {}
       }
 
-      // Company name + legal info
       const companyName = input.settings?.legalName || input.tenant.name;
-      doc.font(FONT_BOLD).fontSize(16).fillColor(COLORS.text).text(companyName, 180, 45, { width: 380 });
-      doc.font(FONT_REG).fontSize(9).fillColor(COLORS.muted);
-      let infoY = 65;
+      doc.font(FONT_BOLD).fontSize(15).fillColor(COLORS.text).text(companyName, 195, 45, { width: 360, lineBreak: false, ellipsis: true });
+      doc.font(FONT_REG).fontSize(8.5).fillColor(COLORS.muted);
+      let infoY = 63;
       const infoLines: string[] = [];
       if (input.settings?.legalForm) infoLines.push(`Forme: ${input.settings.legalForm}`);
       if (input.settings?.address) infoLines.push(input.settings.address);
@@ -208,167 +214,164 @@ export async function generatePdfDoc(input: PdfDocInput): Promise<Buffer> {
       if (input.settings?.nCompte) legalBits.push(`N° compte: ${input.settings.nCompte}`);
       if (input.settings?.capital) legalBits.push(`Capital: ${money(Number(input.settings.capital))}`);
       if (legalBits.length) infoLines.push(legalBits.join("  •  "));
-
-      for (const line of infoLines) {
-        doc.text(line, 180, infoY, { width: 380 });
-        infoY += 12;
+      for (const line of infoLines.slice(0, 6)) {
+        doc.text(line, 195, infoY, { width: 360, lineBreak: false, ellipsis: true });
+        infoY += 11;
       }
 
-      // ── Document title block (right side) ───────────────────────────
       const titleMap = {
         FACTURE: "FACTURE",
         DEVIS: "DEVIS",
         BON_COMMANDE: "BON DE COMMANDE",
         BON_LIVRAISON: "BON DE LIVRAISON",
       };
-      doc.font(FONT_BOLD).fontSize(22).fillColor(COLORS.primary);
-      doc.text(titleMap[input.documentType], 380, 130, { width: 180, align: "right" });
+      doc.font(FONT_BOLD).fontSize(20).fillColor(COLORS.primary);
+      doc.text(titleMap[input.documentType], 380, 130, { width: 175, align: "right" });
 
-      doc.font(FONT_REG).fontSize(10).fillColor(COLORS.text);
-      doc.text(`N° ${input.documentNumber}`, 380, 160, { width: 180, align: "right" });
-      doc.text(`Date: ${dateFmt(input.documentDate)}`, 380, 174, { width: 180, align: "right" });
+      doc.font(FONT_REG).fontSize(9.5).fillColor(COLORS.text);
+      doc.text(`N° ${input.documentNumber}`, 380, 158, { width: 175, align: "right" });
+      doc.text(`Date: ${dateFmt(input.documentDate)}`, 380, 171, { width: 175, align: "right" });
 
-      let rightY = 188;
-      if (input.dueDate) {
-        doc.text(`Échéance: ${dateFmt(input.dueDate)}`, 380, rightY, { width: 180, align: "right" });
-        rightY += 14;
-      }
-      if (input.validUntil) {
-        doc.text(`Valide jusqu'au: ${dateFmt(input.validUntil)}`, 380, rightY, { width: 180, align: "right" });
-        rightY += 14;
-      }
-      if (input.expectedDate) {
-        doc.text(`Livraison prévue: ${dateFmt(input.expectedDate)}`, 380, rightY, { width: 180, align: "right" });
-        rightY += 14;
-      }
+      let rightY = 184;
+      if (input.dueDate) { doc.text(`Échéance: ${dateFmt(input.dueDate)}`, 380, rightY, { width: 175, align: "right" }); rightY += 13; }
+      if (input.validUntil) { doc.text(`Valide jusqu'au: ${dateFmt(input.validUntil)}`, 380, rightY, { width: 175, align: "right" }); rightY += 13; }
+      if (input.expectedDate) { doc.text(`Livraison prévue: ${dateFmt(input.expectedDate)}`, 380, rightY, { width: 175, align: "right" }); rightY += 13; }
 
-      // ── Party block (client / supplier) ─────────────────────────────
       const partyLabel = input.documentType === "BON_COMMANDE" ? "FOURNISSEUR" : "CLIENT";
-      doc.font(FONT_BOLD).fontSize(9).fillColor(COLORS.primary);
-      doc.text(partyLabel, 40, 220, { width: 250 });
-      doc.font(FONT_BOLD).fontSize(11).fillColor(COLORS.text);
-      doc.text(input.party.name, 40, 234, { width: 250 });
+      doc.font(FONT_BOLD).fontSize(8.5).fillColor(COLORS.primary);
+      doc.text(partyLabel, 40, 218, { width: 250 });
+      doc.font(FONT_BOLD).fontSize(10.5).fillColor(COLORS.text);
+      doc.text(input.party.name, 40, 231, { width: 250, lineBreak: false, ellipsis: true });
 
-      doc.font(FONT_REG).fontSize(9).fillColor(COLORS.muted);
-      let partyY = 252;
-      if (input.party.address) { doc.text(input.party.address, 40, partyY, { width: 250 }); partyY += 12; }
+      doc.font(FONT_REG).fontSize(8.5).fillColor(COLORS.muted);
+      let partyY = 248;
+      if (input.party.address) { doc.text(input.party.address, 40, partyY, { width: 250 }); partyY += 11; }
       const pCity = [input.party.city, input.party.country].filter(Boolean).join(", ");
-      if (pCity) { doc.text(pCity, 40, partyY, { width: 250 }); partyY += 12; }
-      if (input.party.phone) { doc.text(`Tél: ${input.party.phone}`, 40, partyY, { width: 250 }); partyY += 12; }
-      if (input.party.email) { doc.text(input.party.email, 40, partyY, { width: 250 }); partyY += 12; }
-      if (input.party.taxId) { doc.text(`N° fiscal: ${input.party.taxId}`, 40, partyY, { width: 250 }); partyY += 12; }
+      if (pCity) { doc.text(pCity, 40, partyY, { width: 250 }); partyY += 11; }
+      if (input.party.phone) { doc.text(`Tél: ${input.party.phone}`, 40, partyY, { width: 250 }); partyY += 11; }
+      if (input.party.email) { doc.text(input.party.email, 40, partyY, { width: 250 }); partyY += 11; }
+      if (input.party.taxId) { doc.text(`N° fiscal: ${input.party.taxId}`, 40, partyY, { width: 250 }); partyY += 11; }
 
-      // ── Items table ─────────────────────────────────────────────────
-      const tableTop = 310;
+      // ── Tableau des lignes (paginé automatiquement si besoin) ────────
+      const tableTop = 300;
       const colX = { ref: 40, name: 105, qty: 302, price: 377, tax: 442, total: 498 };
       const colW = { ref: 65, name: 197, qty: 75, price: 65, tax: 56, total: 67 };
 
-      // Header
-      doc.rect(40, tableTop, 525, 22).fill(COLORS.primary);
-      doc.font(FONT_BOLD).fontSize(9).fillColor("#ffffff");
-      doc.text("RÉF.", colX.ref + 4, tableTop + 6, { width: colW.ref - 8 });
-      doc.text("DÉSIGNATION", colX.name + 4, tableTop + 6, { width: colW.name - 8 });
-      doc.text("QTÉ", colX.qty + 4, tableTop + 6, { width: colW.qty - 8, align: "right" });
-      if (input.documentType !== "BON_LIVRAISON") {
-        doc.text("P.U. HT", colX.price + 4, tableTop + 6, { width: colW.price - 8, align: "right" });
-        doc.text("TVA", colX.tax + 4, tableTop + 6, { width: colW.tax - 8, align: "right" });
+      function drawTableHeader(y: number) {
+        doc.rect(40, y, 525, 20).fill(COLORS.primary);
+        doc.font(FONT_BOLD).fontSize(8).fillColor("#ffffff");
+        doc.text("RÉF.", colX.ref + 4, y + 6, { width: colW.ref - 8 });
+        doc.text("DÉSIGNATION", colX.name + 4, y + 6, { width: colW.name - 8 });
+        doc.text("QTÉ", colX.qty + 4, y + 6, { width: colW.qty - 8, align: "right" });
+        if (input.documentType !== "BON_LIVRAISON") {
+          doc.text("P.U. HT", colX.price + 4, y + 6, { width: colW.price - 8, align: "right" });
+          doc.text("TVA", colX.tax + 4, y + 6, { width: colW.tax - 8, align: "right" });
+        }
+        doc.text("TOTAL", colX.total + 4, y + 6, { width: colW.total - 8, align: "right" });
+        return y + 20;
       }
-      doc.text("TOTAL", colX.total + 4, tableTop + 6, { width: colW.total - 8, align: "right" });
 
-      // Rows
-      let rowY = tableTop + 22;
-      doc.font(FONT_REG).fontSize(9).fillColor(COLORS.text);
+      let rowY = drawTableHeader(tableTop);
+      let tableStartY = tableTop;
+      doc.font(FONT_REG).fontSize(8.5).fillColor(COLORS.text);
       input.lines.forEach((line, idx) => {
-        const rowH = 24;
+        const rowH = 22;
+        if (rowY + rowH > CONTENT_BOTTOM) {
+          doc.rect(40, tableStartY, 525, rowY - tableStartY).lineWidth(0.5).strokeColor(COLORS.border).stroke();
+          doc.addPage();
+          rowY = drawTableHeader(40);
+          tableStartY = 40;
+          doc.font(FONT_REG).fontSize(8.5).fillColor(COLORS.text);
+        }
         if (idx % 2 === 1) {
           doc.rect(40, rowY, 525, rowH).fill(COLORS.altRow);
           doc.fillColor(COLORS.text);
         }
         const sku = (line as any).sku || line.name?.slice(0, 10) || "—";
-        doc.font(FONT_BOLD).text(sku, colX.ref + 4, rowY + 4, { width: colW.ref - 8 });
-        doc.font(FONT_REG).text(line.name, colX.name + 4, rowY + 4, { width: colW.name - 8 });
+        doc.font(FONT_BOLD).fontSize(8.5).text(sku, colX.ref + 4, rowY + 4, { width: colW.ref - 8, lineBreak: false, ellipsis: true });
+        doc.font(FONT_REG).fontSize(8.5).text(line.name, colX.name + 4, rowY + 4, { width: colW.name - 8, lineBreak: false, ellipsis: true });
         if (line.description) {
-          doc.font(FONT_OBL).fontSize(8).fillColor(COLORS.muted).text(line.description, colX.name + 4, rowY + 14, { width: colW.name - 8 });
-          doc.font(FONT_REG).fontSize(9).fillColor(COLORS.text);
+          doc.font(FONT_OBL).fontSize(7).fillColor(COLORS.muted).text(line.description, colX.name + 4, rowY + 13, { width: colW.name - 8, lineBreak: false, ellipsis: true });
+          doc.font(FONT_REG).fontSize(8.5).fillColor(COLORS.text);
         }
         doc.text(String(line.qty), colX.qty + 4, rowY + 4, { width: colW.qty - 8, align: "right" });
         if (input.documentType !== "BON_LIVRAISON") {
-          doc.text(money(line.unitPrice ?? 0), colX.price + 4, rowY + 4, { width: colW.price - 8, align: "right" });
+          doc.text(money(line.unitPrice ?? 0), colX.price + 4, rowY + 4, { width: colW.price - 8, align: "right", lineBreak: false, ellipsis: true });
           doc.text(`${line.taxRate ?? 0}%`, colX.tax + 4, rowY + 4, { width: colW.tax - 8, align: "right" });
         }
-        doc.font(FONT_BOLD).text(input.documentType === "BON_LIVRAISON" ? "" : money(line.lineTotal), colX.total + 4, rowY + 4, { width: colW.total - 8, align: "right" });
+        doc.font(FONT_BOLD).text(input.documentType === "BON_LIVRAISON" ? "" : money(line.lineTotal), colX.total + 4, rowY + 4, { width: colW.total - 8, align: "right", lineBreak: false, ellipsis: true });
         rowY += rowH;
       });
+      doc.rect(40, tableStartY, 525, rowY - tableStartY).lineWidth(0.5).strokeColor(COLORS.border).stroke();
 
-      // Border around the table
-      doc.rect(40, tableTop, 525, rowY - tableTop).lineWidth(0.5).strokeColor(COLORS.border).stroke();
-
-      // ── Totals block (right) ────────────────────────────────────────
+      // ── Totaux ────────────────────────────────────────────────────
       if (input.documentType !== "BON_LIVRAISON") {
-        const totalsY = rowY + 20;
+        rowY = ensureSpace(doc, rowY, 100);
+        const totalsY = rowY + 16;
         const totalsX = 360;
-        doc.font(FONT_REG).fontSize(10).fillColor(COLORS.muted);
+        doc.font(FONT_REG).fontSize(9.5).fillColor(COLORS.muted);
         doc.text("Sous-total HT", totalsX, totalsY, { width: 130, align: "left" });
-        doc.text(money(input.subtotal), 460, totalsY, { width: 100, align: "right" });
-        doc.text("TVA", totalsX, totalsY + 18, { width: 130, align: "left" });
-        doc.text(money(input.taxTotal), 460, totalsY + 18, { width: 100, align: "right" });
-        doc.rect(totalsX, totalsY + 38, 200, 26).fill(COLORS.primary);
-        doc.font(FONT_BOLD).fontSize(12).fillColor("#ffffff");
-        doc.text("TOTAL TTC", totalsX + 8, totalsY + 45, { width: 130, align: "left" });
-        doc.text(money(input.total), 460, totalsY + 45, { width: 100, align: "right" });
-        rowY = totalsY + 70;
+        doc.text(money(input.subtotal), 460, totalsY, { width: 100, align: "right", lineBreak: false, ellipsis: true });
+        doc.text("TVA", totalsX, totalsY + 16, { width: 130, align: "left" });
+        doc.text(money(input.taxTotal), 460, totalsY + 16, { width: 100, align: "right", lineBreak: false, ellipsis: true });
+        doc.rect(totalsX, totalsY + 34, 200, 24).fill(COLORS.primary);
+        doc.font(FONT_BOLD).fontSize(11).fillColor("#ffffff");
+        doc.text("TOTAL TTC", totalsX + 8, totalsY + 41, { width: 130, align: "left" });
+        doc.text(money(input.total), 460, totalsY + 41, { width: 100, align: "right", lineBreak: false, ellipsis: true });
+        rowY = totalsY + 62;
       }
 
-      // ── Notes ────────────────────────────────────────────────────────
+      // ── Notes ─────────────────────────────────────────────────────
       if (input.notes) {
-        doc.font(FONT_BOLD).fontSize(9).fillColor(COLORS.primary);
-        doc.text("NOTES", 40, rowY + 20, { width: 525 });
-        doc.font(FONT_REG).fontSize(9).fillColor(COLORS.text);
-        doc.text(input.notes, 40, rowY + 34, { width: 525 });
-        rowY += 60;
+        rowY = ensureSpace(doc, rowY, 50);
+        doc.font(FONT_BOLD).fontSize(8.5).fillColor(COLORS.primary);
+        doc.text("NOTES", 40, rowY + 16, { width: 525 });
+        doc.font(FONT_REG).fontSize(8.5).fillColor(COLORS.text);
+        doc.text(input.notes, 40, rowY + 29, { width: 525, height: 40, ellipsis: true });
+        rowY += 50;
       }
 
-      // ── Bank info (for invoices & quotes) ────────────────────────────
+      // ── Coordonnées bancaires ─────────────────────────────────────
       if ((input.documentType === "FACTURE" || input.documentType === "DEVIS") && (input.settings?.bankName || input.settings?.bankIban)) {
-        const bankY = Math.max(rowY + 30, 620);
-        doc.font(FONT_BOLD).fontSize(9).fillColor(COLORS.primary);
-        doc.text("COORDONNÉES BANCAIRES", 40, bankY, { width: 250 });
-        doc.font(FONT_REG).fontSize(9).fillColor(COLORS.muted);
-        if (input.settings?.bankName) doc.text(`Banque: ${input.settings.bankName}`, 40, bankY + 14, { width: 250 });
-        if (input.settings?.bankIban) doc.text(`IBAN: ${input.settings.bankIban}`, 40, bankY + 26, { width: 250 });
-        if (input.settings?.bankBic) doc.text(`BIC/SWIFT: ${input.settings.bankBic}`, 40, bankY + 38, { width: 250 });
+        rowY = ensureSpace(doc, rowY, 55);
+        doc.font(FONT_BOLD).fontSize(8.5).fillColor(COLORS.primary);
+        doc.text("COORDONNÉES BANCAIRES", 40, rowY + 14, { width: 250 });
+        doc.font(FONT_REG).fontSize(8.5).fillColor(COLORS.muted);
+        let bY = rowY + 27;
+        if (input.settings?.bankName) { doc.text(`Banque: ${input.settings.bankName}`, 40, bY, { width: 250, lineBreak: false, ellipsis: true }); bY += 11; }
+        if (input.settings?.bankIban) { doc.text(`IBAN: ${input.settings.bankIban}`, 40, bY, { width: 250, lineBreak: false, ellipsis: true }); bY += 11; }
+        if (input.settings?.bankBic) { doc.text(`BIC/SWIFT: ${input.settings.bankBic}`, 40, bY, { width: 250, lineBreak: false, ellipsis: true }); bY += 11; }
+        rowY = bY + 8;
       }
 
-      // ── Signature block ──────────────────────────────────────────────
-      const sigY = 690;
-      doc.font(FONT_BOLD).fontSize(9).fillColor(COLORS.primary);
+      // ── Signature ─────────────────────────────────────────────────
+      rowY = ensureSpace(doc, rowY, 95);
+      const sigY = rowY + 14;
+      doc.font(FONT_BOLD).fontSize(8.5).fillColor(COLORS.primary);
       doc.text("POUR ACCORD", 40, sigY, { width: 200 });
       doc.text("LE CLIENT (nom, date, tampon)", 320, sigY, { width: 200 });
-
       if (input.settings?.signature) {
         try {
           const sigMatch = input.settings.signature.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
           if (sigMatch) {
             const sigBuf = Buffer.from(sigMatch[2], "base64");
-            doc.image(sigBuf, 40, sigY + 14, { fit: [140, 60] });
+            doc.image(sigBuf, 40, sigY + 13, { fit: [130, 55] });
           }
-        } catch (e) { /* ignore */ }
+        } catch {}
       }
-      doc.font(FONT_OBL).fontSize(8).fillColor(COLORS.muted);
-      doc.text(input.settings?.legalName || input.tenant.name, 40, sigY + 78, { width: 200 });
+      doc.font(FONT_OBL).fontSize(7.5).fillColor(COLORS.muted);
+      doc.text(input.settings?.legalName || input.tenant.name, 40, sigY + 72, { width: 200, lineBreak: false, ellipsis: true });
       if (input.receivedBy) {
-        doc.font(FONT_BOLD).fontSize(9).fillColor(COLORS.primary);
-        doc.text(`Réceptionné par: ${input.receivedBy}`, 320, sigY + 80, { width: 200 });
+        doc.font(FONT_BOLD).fontSize(8.5).fillColor(COLORS.primary);
+        doc.text(`Réceptionné par: ${input.receivedBy}`, 320, sigY + 74, { width: 200, lineBreak: false, ellipsis: true });
       }
 
-      // ── Footer ───────────────────────────────────────────────────────
-      const footerY = 800;
-      doc.rect(0, footerY, 595.28, 42).fill(COLORS.primaryLight);
-      doc.font(FONT_OBL).fontSize(8).fillColor(COLORS.muted);
-      const footerText = input.settings?.footerNote
-        || `${input.settings?.legalName || input.tenant.name} — ${input.settings?.rc ? "RC " + input.settings.rc + "  •  " : ""}${input.settings?.ninea ? "NINEA " + input.settings.ninea : ""}`;
-      doc.text(footerText, 40, footerY + 8, { width: 515, align: "center" });
-      doc.text(`Document généré par Finora ERP le ${new Intl.DateTimeFormat("fr-SN", { dateStyle: "full", timeStyle: "short" }).format(new Date())}`, 40, footerY + 22, { width: 515, align: "center" });
+      // ── Footer sur chaque page réellement utilisée ───────────────
+      const range = doc.bufferedPageRange();
+      for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(i);
+        drawFooter(doc, input.tenant, input.settings);
+      }
 
       doc.end();
     } catch (e) {
@@ -378,11 +381,131 @@ export async function generatePdfDoc(input: PdfDocInput): Promise<Buffer> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// À AJOUTER À LA FIN DE lib/pdf-generator.ts
-// Génère un PDF simple à partir d'un texte libre (ex: analyse/conseil de Finora AI).
-// Version autonome : ne dépend d'aucune fonction externe (drawFooter, etc.).
+// RAPPORT GÉNÉRIQUE (tableau) — journal, balance, caisse, trésorerie...
 // ─────────────────────────────────────────────────────────────────────────────
+export interface ReportColumn {
+  key: string;
+  label: string;
+  align?: "left" | "right";
+  width: number;
+  format?: (v: any, row: any) => string;
+}
 
+export interface ReportPdfInput {
+  tenant: Tenant;
+  settings: CompanySettings | null;
+  title: string;
+  subtitle?: string;
+  columns: ReportColumn[];
+  rows: any[];
+  totalsRow?: Record<string, string>;
+  generatedAt?: Date;
+}
+
+export async function generateReportPdfDoc(input: ReportPdfInput): Promise<Buffer> {
+  const Doc = await loadPdfKit();
+
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new Doc({ size: "A4", margin: 40, bufferPages: true, autoFirstPage: true });
+      const chunks: Buffer[] = [];
+      doc.on("data", (c: any) => chunks.push(c as Buffer));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
+
+      if (input.settings?.logo) {
+        try {
+          const dataMatch = input.settings.logo.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
+          if (dataMatch) {
+            const buf = Buffer.from(dataMatch[2], "base64");
+            doc.image(buf, 40, 40, { fit: [85, 52] });
+          }
+        } catch {}
+      }
+      const companyName = input.settings?.legalName || input.tenant.name;
+      doc.font(FONT_BOLD).fontSize(12).fillColor(COLORS.text).text(companyName, 135, 44, { width: 300, lineBreak: false, ellipsis: true });
+      doc.font(FONT_REG).fontSize(8).fillColor(COLORS.muted).text(input.tenant.currency, 135, 60, { width: 300 });
+
+      doc.font(FONT_BOLD).fontSize(16).fillColor(COLORS.primary).text(input.title, 40, 105, { width: 515 });
+      if (input.subtitle) {
+        doc.font(FONT_REG).fontSize(9.5).fillColor(COLORS.muted).text(input.subtitle, 40, 128, { width: 515 });
+      }
+      doc.font(FONT_OBL).fontSize(7.5).fillColor(COLORS.muted).text(
+        `Généré le ${dateFmt(input.generatedAt || new Date())}`, 40, 145, { width: 515 }
+      );
+
+      const tableTop = 172;
+      let colX = 40;
+      const colPositions: Record<string, { x: number; w: number }> = {};
+      for (const col of input.columns) {
+        colPositions[col.key] = { x: colX, w: col.width };
+        colX += col.width;
+      }
+
+      function drawHeader(y: number) {
+        doc.rect(40, y, 525, 18).fill(COLORS.primary);
+        doc.font(FONT_BOLD).fontSize(7.5).fillColor("#ffffff");
+        for (const col of input.columns) {
+          const p = colPositions[col.key];
+          doc.text(col.label.toUpperCase(), p.x + 4, y + 5, { width: p.w - 8, align: col.align || "left", lineBreak: false, ellipsis: true });
+        }
+        return y + 18;
+      }
+
+      let rowY = drawHeader(tableTop);
+      let tableStartY = tableTop;
+      doc.font(FONT_REG).fontSize(7.5).fillColor(COLORS.text);
+      input.rows.forEach((row, idx) => {
+        const rowH = 18;
+        if (rowY + rowH > CONTENT_BOTTOM) {
+          doc.rect(40, tableStartY, 525, rowY - tableStartY).lineWidth(0.5).strokeColor(COLORS.border).stroke();
+          doc.addPage();
+          rowY = drawHeader(40);
+          tableStartY = 40;
+          doc.font(FONT_REG).fontSize(7.5).fillColor(COLORS.text);
+        }
+        if (idx % 2 === 1) {
+          doc.rect(40, rowY, 525, rowH).fill(COLORS.altRow);
+          doc.fillColor(COLORS.text);
+        }
+        for (const col of input.columns) {
+          const p = colPositions[col.key];
+          const raw = row[col.key];
+          const text = col.format ? col.format(raw, row) : String(raw ?? "—");
+          doc.text(text, p.x + 4, rowY + 4, { width: p.w - 8, align: col.align || "left", lineBreak: false, ellipsis: true });
+        }
+        rowY += rowH;
+      });
+      doc.rect(40, tableStartY, 525, rowY - tableStartY).lineWidth(0.5).strokeColor(COLORS.border).stroke();
+
+      if (input.totalsRow) {
+        rowY = ensureSpace(doc, rowY, 22);
+        doc.rect(40, rowY, 525, 20).fill(COLORS.primary);
+        doc.font(FONT_BOLD).fontSize(7.5).fillColor("#ffffff");
+        for (const col of input.columns) {
+          const p = colPositions[col.key];
+          const text = input.totalsRow[col.key] ?? "";
+          doc.text(text, p.x + 4, rowY + 5, { width: p.w - 8, align: col.align || "left", lineBreak: false, ellipsis: true });
+        }
+        rowY += 20;
+      }
+
+      const range = doc.bufferedPageRange();
+      for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(i);
+        drawFooter(doc, input.tenant, input.settings);
+      }
+
+      doc.end();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEXTE LIBRE — analyses / conseils Finora AI
+// ─────────────────────────────────────────────────────────────────────────────
 export interface TextPdfInput {
   tenant: Tenant;
   settings: CompanySettings | null;
@@ -396,7 +519,7 @@ export async function generateTextPdfDoc(input: TextPdfInput): Promise<Buffer> {
 
   return new Promise((resolve, reject) => {
     try {
-      const doc = new Doc({ size: "A4", margin: 50, bufferPages: true });
+      const doc = new Doc({ size: "A4", margin: 50, bufferPages: true, autoFirstPage: true });
       const chunks: Buffer[] = [];
       doc.on("data", (c: any) => chunks.push(c as Buffer));
       doc.on("end", () => resolve(Buffer.concat(chunks)));
@@ -413,7 +536,7 @@ export async function generateTextPdfDoc(input: TextPdfInput): Promise<Buffer> {
       }
 
       doc.font(FONT_BOLD).fontSize(10).fillColor(COLORS.text).text(
-        input.settings?.legalName || input.tenant.name, 140, 44, { width: 300 }
+        input.settings?.legalName || input.tenant.name, 140, 44, { width: 300, lineBreak: false, ellipsis: true }
       );
       doc.font(FONT_OBL).fontSize(8).fillColor(COLORS.muted).text(
         `Généré le ${dateFmt(input.generatedAt || new Date())}`, 140, 58, { width: 300 }
@@ -428,6 +551,12 @@ export async function generateTextPdfDoc(input: TextPdfInput): Promise<Buffer> {
         align: "justify",
         lineGap: 3,
       });
+
+      const range = doc.bufferedPageRange();
+      for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(i);
+        drawFooter(doc, input.tenant, input.settings);
+      }
 
       doc.end();
     } catch (e) {

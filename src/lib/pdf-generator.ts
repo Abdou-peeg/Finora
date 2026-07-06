@@ -199,7 +199,7 @@ export async function generatePdfDoc(input: PdfDocInput): Promise<Buffer> {
           const dataMatch = input.settings.logo.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
           if (dataMatch) {
             const buf = Buffer.from(dataMatch[2], "base64");
-            doc.image(buf, 40, 40, { fit: [140, 85] });
+            doc.image(buf, 40, 40, { fit: [148, 90] });
           }
         } catch {}
       }
@@ -233,8 +233,9 @@ export async function generatePdfDoc(input: PdfDocInput): Promise<Buffer> {
         BON_COMMANDE: "BON DE COMMANDE",
         BON_LIVRAISON: "BON DE LIVRAISON",
       };
-      doc.font(FONT_BOLD).fontSize(20).fillColor(COLORS.primary);
-      doc.text(titleMap[input.documentType], 380, 130, { width: 175, align: "right" });
+      const titleFontSize = input.documentType === "BON_COMMANDE" || input.documentType === "BON_LIVRAISON" ? 14 : 20;
+      doc.font(FONT_BOLD).fontSize(titleFontSize).fillColor(COLORS.primary);
+      doc.text(titleMap[input.documentType], 355, 130, { width: 200, align: "right", lineBreak: false });
 
       doc.font(FONT_REG).fontSize(9.5).fillColor(COLORS.text);
       doc.text(`N° ${input.documentNumber}`, 380, 158, { width: 175, align: "right" });

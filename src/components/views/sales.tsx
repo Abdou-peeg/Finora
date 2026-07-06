@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, ShoppingCart, Trash2, FileText, CheckCircle2, ChevronRight, XCircle } from "lucide-react";
+import { Plus, Search, ShoppingCart, Trash2, FileText, CheckCircle2, ChevronRight, XCircle, Truck } from "lucide-react";
 import { currency, dateTimeShort, StatusBadge } from "@/lib/format";
 import { toast } from "sonner";
 
@@ -229,6 +229,7 @@ export function SalesView() {
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
                           {s.status === "DRAFT" && <Button size="sm" variant="outline" onClick={() => doAction(s.id, "confirm")}><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Confirmer</Button>}
+                          {s.status === "CONFIRMED" && <Button size="sm" variant="outline" onClick={() => doAction(s.id, "delivery-note")}><Truck className="h-3.5 w-3.5 mr-1" /> Bon de livraison</Button>}
                           {s.status === "CONFIRMED" && <Button size="sm" variant="outline" onClick={() => doAction(s.id, "invoice")}><FileText className="h-3.5 w-3.5 mr-1" /> Facturer</Button>}
                           {["DRAFT", "CONFIRMED"].includes(s.status) && <Button size="sm" variant="ghost" className="text-rose-600" onClick={() => doAction(s.id, "cancel")}><XCircle className="h-3.5 w-3.5" /></Button>}
                           <Button size="sm" variant="ghost" onClick={() => setDetails(s)}><ChevronRight className="h-3.5 w-3.5" /></Button>

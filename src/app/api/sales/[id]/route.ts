@@ -30,9 +30,40 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json(updated);
     }
     if (action === "invoice") {
-      const inv = await generateInvoiceFromSale(id, g.user);
-      return NextResponse.json(inv);
-    }
+  const inv = await generateInvoiceFromSale(id, g.user);
+  return NextResponse.json(inv);
+}
+if (action === "delivery-note") {
+  if (sale.status !== "CONFIRMED") {
+    return NextResponse.json({ error: "La vente doit être confirmée" }, { status: 400 });
+  }
+  const year = new Date().getFullYear();
+  const count = await db.deliveryNote.count({ where: { tenantId, number: { startsWith: `BL-${year}-` } } });
+  const number = `BL-${year}-${String(count + 1).padStart(4, "0")}`;
+  const saleWithItems = await db.sale.findUnique({ where: { id }, include: { items: true } });
+  const dn = await db.deliveryNote.create({
+    data: {
+      tenantId,
+      number,
+      customerId: sale.customerId,
+      saleId: sale.id,
+      userId: g.user.id,
+      date: new Date(),
+      status: "DRAFT",
+      items: {
+        create: saleWithItems!.items.map((it) => ({ productId: it.productId, qty: it.qty })),
+      },
+    },
+  });
+  await db.auditLog.create({
+    data: {
+      tenantId, userId: g.user.id, userName: g.user.name,
+      action: "DELIVERY_NOTE_CREATED", entity: "DeliveryNote", entityId: dn.id,
+      details: `Bon de livraison ${number} créé depuis la vente ${sale.reference}.`,
+    },
+  });
+  return NextResponse.json(dn);
+}
     return NextResponse.json({ error: "Action inconnue" }, { status: 400 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 400 });

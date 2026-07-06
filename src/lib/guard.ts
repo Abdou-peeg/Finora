@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions, can } from "./auth";
 import { db } from "@/lib/db";
+import { safeError } from "@/lib/errors";
 
 export async function getSessionUser() {
   return await getServerSession(authOptions);

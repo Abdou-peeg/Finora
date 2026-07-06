@@ -23,6 +23,7 @@
  * Each operation also writes an AuditLog row inside the same transaction.
  */
 import { db } from "@/lib/db";
+import { safeError } from "@/lib/errors";
 import { notify } from "@/lib/realtime-server";
 
 // Plan comptable OHADA (système comptable OHADA — adopté au Sénégal et dans l'UEMOA)

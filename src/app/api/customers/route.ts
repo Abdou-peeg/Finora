@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/guard";
 import { db } from "@/lib/db";
+import { safeError } from "@/lib/errors";
 
 export async function GET(req: Request) {
   const g = await requirePermission(req, "clients:view");
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(created);
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 400 });
+    return NextResponse.json({ error: safeError(e) }, { status: 400 });
   }
 }
 

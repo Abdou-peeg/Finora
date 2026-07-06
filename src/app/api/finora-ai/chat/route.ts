@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/guard";
 import { db } from "@/lib/db";
+import { safeError } from "@/lib/errors";
 import { callGemini, GeminiFunctionDeclaration, GeminiMessage } from "@/lib/gemini";
 import { generateInvoiceFromSale } from "@/lib/transactions";
 

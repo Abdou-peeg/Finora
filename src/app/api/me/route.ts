@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/guard";
 import { db } from "@/lib/db";
+import { safeError } from "@/lib/errors";
 
 export async function GET() {
   const session = await getSessionUser();

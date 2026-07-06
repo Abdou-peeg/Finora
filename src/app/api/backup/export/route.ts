@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/guard";
 import { db } from "@/lib/db";
+import { safeError } from "@/lib/errors";
 
 // Format version — bump this if the shape of the export ever changes,
 // so a future import route can detect and reject incompatible backups.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/guard";
 import { db } from "@/lib/db";
+import { safeError } from "@/lib/errors";
 import { confirmSale, generateInvoiceFromSale } from "@/lib/transactions";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -66,6 +67,6 @@ if (action === "delivery-note") {
 }
     return NextResponse.json({ error: "Action inconnue" }, { status: 400 });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 400 });
+    return NextResponse.json({ error: safeError(e) }, { status: 400 });
   }
 }

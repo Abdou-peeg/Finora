@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/guard";
 import { db } from "@/lib/db";
+import { safeError } from "@/lib/errors";
 import { notify } from "@/lib/realtime-server";
 
 function round2(v: number) { return Math.round((v + Number.EPSILON) * 100) / 100; }
@@ -89,6 +90,6 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(created);
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 400 });
+    return NextResponse.json({ error: safeError(e) }, { status: 400 });
   }
 }

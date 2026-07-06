@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/guard";
 import { db } from "@/lib/db";
+import { safeError } from "@/lib/errors";
 import { generatePdfDoc } from "@/lib/pdf-generator";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {

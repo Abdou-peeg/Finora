@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, ShieldCheck, Zap, Layers, Building2, UserPlus, LogIn } from "lucide-react";
 import { SENEGAL_CITIES } from "@/lib/format";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 type Mode = "login" | "signup";
 
@@ -20,6 +21,8 @@ export function LoginScreen() {
   // Login state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSuPassword, setShowSuPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -183,8 +186,13 @@ export function LoginScreen() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Mot de passe</Label>
-                  <Input id="password" type="password" placeholder="••••••••" value={password}
-                    onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+                  <div className="relative">
+  <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password}
+    onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" className="pr-9" />
+  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+  </button>
+</div>
                 </div>
                 {loginError && (
                   <div className="rounded-md bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 px-3 py-2 text-sm text-rose-700 dark:text-rose-300">

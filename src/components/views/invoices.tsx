@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, FileText, Wallet, XCircle, Download } from "lucide-react";
 import { currency, dateTimeShort, dateShort, StatusBadge } from "@/lib/format";
 import { toast } from "sonner";
+import { sharePdf } from "@/lib/share-pdf";
+import { Share2 } from "lucide-react";
 
 export function InvoicesView() {
   const [search, setSearch] = useState("");
@@ -94,6 +96,21 @@ export function InvoicesView() {
                             <Button size="sm" variant="ghost" onClick={() => window.open(`/api/invoices/${inv.id}/pdf`, "_blank")} title="Télécharger PDF">
                               <Download className="h-3.5 w-3.5" />
                             </Button>
+                            <Button
+  size="sm"
+  variant="ghost"
+  title="Envoyer via WhatsApp"
+  onClick={() =>
+    sharePdf({
+      url: `/api/invoices/${inv.id}/pdf`,
+      filename: `${inv.number}.pdf`,
+      title: `Facture ${inv.number}`,
+      message: `Bonjour, voici votre facture ${inv.number} d'un montant de ${inv.total} FCFA. Merci pour votre confiance.`,
+    })
+  }
+>
+  <Share2 className="h-3.5 w-3.5" />
+</Button>
                             {["UNPAID", "PARTIAL"].includes(inv.status) && (
                               <Button size="sm" variant="outline" onClick={() => openPay(inv)}><Wallet className="h-3.5 w-3.5 mr-1" /> Régler</Button>
                             )}

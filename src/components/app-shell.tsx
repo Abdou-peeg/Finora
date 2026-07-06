@@ -20,6 +20,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
 import { useRealtime } from "@/hooks/use-realtime";
 import { FinoraAiWidget } from "@/components/finora-ai-widget";
+import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 
 const NAV_GROUPS = [
   {
@@ -117,6 +118,19 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const { connected, notifications } = useRealtime(user?.tenantId, user?.id, user?.role);
+
+  const [cmdOpen, setCmdOpen] = useState(false);
+
+useEffect(() => {
+  function handleKeyDown(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      e.preventDefault();
+      setCmdOpen((v) => !v);
+    }
+  }
+  document.addEventListener("keydown", handleKeyDown);
+  return () => document.removeEventListener("keydown", handleKeyDown);
+}, []);
 
   // Auto-navigate based on hash on first load
   useEffect(() => {
@@ -256,9 +270,11 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Recherche globale (Cmd+K)…"
-                className="pl-9 bg-muted/40 border-0 h-9"
+                className="pl-9 bg-muted/40 border-0 h-9 cursor-pointer"
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
+                onFocus={() => setCmdOpen(true)}
+                readOnly
               />
             </div>
 
@@ -302,6 +318,35 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
           {children}
         </main>
       </div>
+      <CommandDialog open={cmdOpen} onOpenChange={setCmdOpen}>
+  <CommandInput placeholder="Rechercher un module, une action…" />
+  <CommandList>
+    <CommandEmpty>Aucun résultat.</CommandEmpty>
+    {NAV_GROUPS.map((group) => {
+      const items = group.items.filter((it) => canAccess(user?.role, it.perm, user?.isSuperAdmin));
+      if (items.length === 0) return null;
+      return (
+        <CommandGroup key={group.label} heading={group.label}>
+          {items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <CommandItem
+                key={item.id}
+                onSelect={() => {
+                  handleNav(item.id);
+                  setCmdOpen(false);
+                }}
+              >
+                <Icon className="h-4 w-4 mr-2" />
+                {item.label}
+              </CommandItem>
+            );
+          })}
+        </CommandGroup>
+      );
+    })}
+  </CommandList>
+</CommandDialog>
       <FinoraAiWidget />
     </div>
   );

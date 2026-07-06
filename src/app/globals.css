@@ -149,3 +149,13 @@
 .animate-pulse-scale {
   animation: pulse-scale 1.4s ease-in-out infinite;
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.6s infinite;
+}

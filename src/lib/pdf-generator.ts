@@ -376,3 +376,68 @@ export async function generatePdfDoc(input: PdfDocInput): Promise<Buffer> {
     }
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// À AJOUTER À LA FIN DE lib/pdf-generator.ts (après generateReportPdfDoc)
+// Génère un PDF simple à partir d'un texte libre (ex: analyse/conseil de Finora AI).
+// Contrairement aux tableaux, on laisse pdfkit paginer naturellement le texte.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface TextPdfInput {
+  tenant: Tenant;
+  settings: CompanySettings | null;
+  title: string;
+  content: string;
+  generatedAt?: Date;
+}
+
+export async function generateTextPdfDoc(input: TextPdfInput): Promise<Buffer> {
+  const Doc = await loadPdfKit();
+
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new Doc({ size: "A4", margin: 50, bufferPages: true, autoFirstPage: true });
+      const chunks: Buffer[] = [];
+      doc.on("data", (c: any) => chunks.push(c as Buffer));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
+
+      if (input.settings?.logo) {
+        try {
+          const dataMatch = input.settings.logo.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
+          if (dataMatch) {
+            const buf = Buffer.from(dataMatch[2], "base64");
+            doc.image(buf, 50, 40, { fit: [80, 50] });
+          }
+        } catch {}
+      }
+
+      doc.font(FONT_BOLD).fontSize(10).fillColor(COLORS.text).text(
+        input.settings?.legalName || input.tenant.name, 140, 44, { width: 300 }
+      );
+      doc.font(FONT_OBL).fontSize(8).fillColor(COLORS.muted).text(
+        `Généré le ${dateFmt(input.generatedAt || new Date())}`, 140, 58, { width: 300 }
+      );
+
+      doc.moveDown(3);
+      doc.font(FONT_BOLD).fontSize(16).fillColor(COLORS.primary).text(input.title, { width: 495 });
+      doc.moveDown(1);
+
+      doc.font(FONT_REG).fontSize(10).fillColor(COLORS.text).text(input.content, {
+        width: 495,
+        align: "justify",
+        lineGap: 3,
+      });
+
+      const range = doc.bufferedPageRange();
+      for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(i);
+        drawFooter(doc, input.tenant, input.settings);
+      }
+
+      doc.end();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}

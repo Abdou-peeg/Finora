@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
 import { useRealtime } from "@/hooks/use-realtime";
+import { FinoraAiWidget } from "@/components/finora-ai-widget";
 
 const NAV_GROUPS = [
   {
@@ -301,6 +302,7 @@ export function AppShell({ current, onNavigate, children }: AppShellProps) {
           {children}
         </main>
       </div>
+      <FinoraAiWidget />
     </div>
   );
 }

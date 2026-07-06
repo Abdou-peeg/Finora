@@ -17,8 +17,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground">
-        <TopLoadingBar />
-        <AppProviders>{children}</AppProviders>
+        <AppProviders>
+          <TopLoadingBar />
+          {children}
+        </AppProviders>
         <Toaster />
         <SonnerToaster richColors closeButton position="top-right" />
       </body>

@@ -48,17 +48,6 @@ const FUNCTIONS: GeminiFunctionDeclaration[] = [
       required: ["customerName", "items"],
     },
   },
-  {
-    name: "generate_invoice_from_sale",
-    description: "Génère une facture à partir d'une vente déjà confirmée, en indiquant sa référence (ex: VTE-2026-0004).",
-    parameters: {
-      type: "object",
-      properties: {
-        saleReference: { type: "string", description: "Référence exacte de la vente confirmée" },
-      },
-      required: ["saleReference"],
-    },
-  },
     {
     name: "generate_invoice_from_sale",
     description: "Génère une facture à partir d'une vente déjà confirmée, en indiquant sa référence (ex: VTE-2026-0004).",

@@ -266,6 +266,11 @@ ${financialContext}`;
       actions: actionsSummary,
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || "Erreur Finora AI" }, { status: 500 });
-  }
+  console.error("[Finora AI] Erreur:", e.message);
+  const isQuotaError = e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED") || e.message?.includes("quota");
+  const userMessage = isQuotaError
+    ? "Finora AI est temporairement indisponible (quota atteint). Réessayez plus tard."
+    : "Finora AI a rencontré une erreur. Réessayez.";
+  return NextResponse.json({ error: userMessage }, { status: 500 });
+}
 }

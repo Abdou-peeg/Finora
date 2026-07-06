@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { AppProviders } from "@/components/providers";
+import { TopLoadingBar } from "@/components/top-loading-bar";
 
 export const metadata: Metadata = {
   title: "Finora",
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground">
+        <TopLoadingBar />
         <AppProviders>{children}</AppProviders>
         <Toaster />
         <SonnerToaster richColors closeButton position="top-right" />

@@ -165,7 +165,7 @@ useEffect(() => {
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-<div className="h-16 flex items-center gap-2.5 px-5 border-b">
+<div className="h-16 flex items-center gap-2.5 px-2 border-b">
   <img src="/logo-icon.png" alt="Finora" className="h-18 w-18 object-contain" />
           <div>
             <div className="font-bold leading-tight text-[#0d5d4a]">Finora</div>

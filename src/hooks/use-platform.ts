@@ -4,6 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/hooks/use-data";
 import { toast } from "sonner";
 
+export function usePlatformMetrics() {
+  return useQuery({
+    queryKey: ["platform-metrics"],
+    queryFn: () => api("/api/platform/metrics"),
+  });
+}
+
 export function usePlatformTenants() {
   return useQuery({
     queryKey: ["platform-tenants"],

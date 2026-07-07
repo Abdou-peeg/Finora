@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { usePlatformTenants, useUpdateTenantSubscription } from "@/hooks/use-platform";
-import { Card, CardContent } from "@/components/ui/card";
+import { usePlatformTenants, useUpdateTenantSubscription, usePlatformMetrics } from "@/hooks/use-platform";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,49 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Ban, CheckCircle2 } from "lucide-react";
+import { Building2, Plus, Ban, CheckCircle2, Users, TrendingUp, Wallet, Receipt } from "lucide-react";
+import { KpiCard } from "@/components/kpi-card";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
+function PlatformMetrics() {
+  const { data, isLoading } = usePlatformMetrics();
+  if (isLoading) {
+    return (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
+      </div>
+    );
+  }
+  if (!data) return null;
+  return (
+    <div className="space-y-5">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard label="Clients actifs" value={data.activeTenants} icon={<Users className="h-4 w-4" />} variant="success" hint={`${data.totalTenants} au total`} />
+        <KpiCard label="MRR estimé" value={data.estimatedMRR} icon={<TrendingUp className="h-4 w-4" />} variant="success" />
+        <KpiCard label="GMV total traité" value={data.totalGMV} icon={<Wallet className="h-4 w-4" />} variant="default" hint="Toutes ventes, tous clients" />
+        <KpiCard label="Clients bloqués" value={data.blockedTenants} icon={<Ban className="h-4 w-4" />} variant={data.blockedTenants > 0 ? "danger" : "default"} />
+      </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Nouveaux clients — 6 derniers mois</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.signupsByMonth}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} />
+                <YAxis tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} allowDecimals={false} width={30} />
+                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                <Bar dataKey="count" name="Nouveaux clients" fill="#0d5d4a" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 function StatusPill({ tenant }: { tenant: any }) {
   const expired = tenant.subscriptionExpiresAt && new Date(tenant.subscriptionExpiresAt) < new Date();
@@ -71,6 +113,8 @@ export function PlatformView() {
           Vue réservée au super-administrateur. Gérez l'accès et l'abonnement de chaque entreprise cliente.
         </p>
       </div>
+
+      <PlatformMetrics />
 
       <Card>
         <CardContent className="p-4 space-y-3">

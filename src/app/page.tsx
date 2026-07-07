@@ -36,7 +36,7 @@ if (status === "loading") {
       <img
         src="/logo-icon.png"
         alt="Finora"
-        className="h-20 w-20 animate-pulse-scale"
+        className="h-32 w-32 animate-spin"
       />
       <div className="text-[#0d5d4a]/70 text-sm tracking-wide">Chargement…</div>
     </div>

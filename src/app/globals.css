@@ -129,25 +129,66 @@
 .dark .scroll-fade::-webkit-scrollbar-thumb { background: oklch(0.35 0.02 160); }
 
 /* Subtle animation for realtime badge */
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+/* =========================
+   Realtime badge
+========================= */
 
-@keyframes pulse-scale {
+@keyframes pulse-dot {
   0%, 100% {
-    transform: scale(1);
     opacity: 1;
   }
   50% {
-    transform: scale(1.1);
-    opacity: 0.7;
+    opacity: 0.4;
   }
 }
 
-.animate-pulse-scale {
-  animation: pulse-scale 1.4s ease-in-out infinite;
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* =========================
+   Finora Loading Logo
+========================= */
+
+@keyframes logo-spin {
+  0% {
+    transform: rotate(0deg) scale(0.75);
+    opacity: 0;
+  }
+
+  60% {
+    transform: rotate(540deg) scale(1.08);
+    opacity: 1;
+  }
+
+  80% {
+    transform: rotate(700deg) scale(0.98);
+  }
+
+  100% {
+    transform: rotate(720deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes logo-spin-loop {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-logo {
+  animation:
+    logo-spin 1.8s cubic-bezier(.22, 1, .36, 1),
+    logo-spin-loop 8s linear infinite;
+
+  animation-delay: 0s, 1.8s;
+  animation-fill-mode: forwards;
+  transform-origin: center;
+  will-change: transform;
 }
 
 .skeleton-shimmer {

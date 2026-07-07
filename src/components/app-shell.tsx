@@ -166,9 +166,7 @@ useEffect(() => {
         )}
       >
 <div className="h-16 flex items-center gap-2.5 px-5 border-b">
-          <div className="rounded-lg overflow-hidden h-15 w-15 flex items-center justify-center bg-white">
-  <img src="/logo-icon.png" alt="Finora" className="h-15 w-15 object-contain" />
-</div>
+  <img src="/logo-icon.png" alt="Finora" className="h-20 w-20 object-contain" />
           <div>
             <div className="font-bold leading-tight text-[#0d5d4a]">Finora</div>
             <div className="text-[10px] text-muted-foreground leading-tight">Gestion d'entreprise nouvelle génération</div>

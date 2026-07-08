@@ -144,6 +144,8 @@ export function LoginScreen() {
       </div>
 
       {/* Right — Auth forms */}
+      <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
+        <div className="w-full max-w-md space-y-6">
       <div className="lg:hidden flex items-center justify-center mb-8">
   <img src="/logo-sidebar.png" alt="Finora" className="h-14 w-auto" />
 </div>

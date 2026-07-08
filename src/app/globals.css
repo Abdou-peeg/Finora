@@ -224,3 +224,19 @@
   transition: opacity 0.3s ease;
   opacity: 0;
 }
+
+
+/*RUBAN DE LOGO*/
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee-scroll 22s linear infinite;
+}

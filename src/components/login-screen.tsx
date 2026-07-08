@@ -103,13 +103,9 @@ export function LoginScreen() {
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
         </div>
-        <div className="w-full max-w-md space-y-6">
-    <div className="lg:hidden flex justify-center mb-8">
-      <div className="inline-block bg-white rounded-xl px-4 py-2 shadow-sm">
-        <img src="/logo-sidebar.png" alt="Finora" className="h-16 w-auto" />
-      </div>
-    </div>
-
+        <div className="relative">
+          <img src="/logo-sidebar.png" alt="Finora" className="h-22 w-auto" />
+        </div>
         <div className="relative space-y-6 max-w-md">
           <h1 className="text-4xl font-bold leading-tight">
             Gérez votre entreprise en FCFA, en temps réel.
@@ -148,8 +144,16 @@ export function LoginScreen() {
       </div>
 
       {/* Right — Auth forms */}
-      <div className="lg:hidden flex items-center justify-center mb-8">
-  <img src="/logo-sidebar.png" alt="Finora" className="h-14 w-auto" />
+      <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
+        <div className="w-full max-w-md space-y-6">
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+  <div className="rounded-xl bg-white border p-2.5 h-11 w-11 flex items-center justify-center">
+    <img src="/logo-icon.png" alt="Finora" className="h-8 w-8 object-contain" />
+  </div>
+  <div>
+<div className="text-xl font-bold text-[#0d5d4a]">Finora</div>
+<div className="text-xs text-muted-foreground">Gestion d'entreprise nouvelle génération</div>
+  </div>
 </div>
 
           <Tabs value={mode} onValueChange={(v) => { setMode(v as Mode); setLoginError(null); setSignupError(null); }}>
@@ -278,5 +282,6 @@ export function LoginScreen() {
           </Tabs>
         </div>
       </div>
+    </div>
   );
 }

@@ -140,7 +140,7 @@ export function LoginScreen() {
           </div>
         </div>
         <div className="relative text-xs text-white/60">
-          © 2026 Finora — Architecture SaaS multi-tenant, API-first, audit log complet.
+          © 2026 Finora. Tous droits réservés. Plateforme de gestion d'entreprise unifiée.
         </div>
       </div>
 

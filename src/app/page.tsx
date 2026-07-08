@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PaywallScreen } from "@/components/paywall-screen";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { PlatformView } from "@/components/views/platform";
+import { HRView } from "@/components/views/hr";
 import { LogoLoadingSpinner } from "@/components/logo-loading-spinner";
 
 export default function Home() {
@@ -69,6 +70,7 @@ if (expiredFromSession || expiredFromApi) {
       case "devis": return <QuotesView />;
       case "bons-commande": return <PurchaseOrdersView />;
       case "bons-livraison": return <DeliveryNotesView />;
+      case "rh": return <HRView />;
       case "plateforme": return <PlatformView />;
       default: return <DashboardView />;
     }

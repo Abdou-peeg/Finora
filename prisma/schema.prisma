@@ -41,6 +41,13 @@ model Tenant {
   quotes          Quote[]
   purchaseOrders  PurchaseOrder[]
   deliveryNotes   DeliveryNote[]
+  
+  // HR Module
+  employees       Employee[]
+  absences        Absence[]
+  delays          Delay[]
+  salaryLoans     SalaryLoan[]
+  payrolls        Payroll[]
 }
 
 model User {
@@ -57,6 +64,13 @@ model User {
 
   tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   auditLogs AuditLog[]
+  
+  // HR Module relations
+  employee         Employee?
+  approvedAbsences Absence[]    @relation("ApprovedAbsences")
+  recordedDelays   Delay[]      @relation("RecordedDelays")
+  approvedLoans    SalaryLoan[] @relation("ApprovedLoans")
+  generatedPayrolls Payroll[]   @relation("GeneratedPayrolls")
 
   @@index([tenantId])
 }
@@ -66,6 +80,166 @@ enum UserRole {
   COMPTABLE
   VENDEUR
   STOCK_MANAGER
+  HR_MANAGER
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HR MODULE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Employee {
+  id              String    @id @default(cuid())
+  tenantId        String
+  userId          String?   @unique
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String?
+  address         String?
+  dateOfBirth     DateTime?
+  hireDate        DateTime
+  jobTitle        String?
+  department      String?
+  baseSalary      Decimal   @db.Decimal(14, 2)
+  bankAccount     String?
+  socialSecurityNum String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  absences        Absence[]
+  delays          Delay[]
+  salaryLoans     SalaryLoan[]
+  payrolls        Payroll[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model Absence {
+  id              String    @id @default(cuid())
+  tenantId        String
+  employeeId      String
+  startDate       DateTime
+  endDate         DateTime
+  type            AbsenceType
+  reason          String?
+  status          AbsenceStatus @default(PENDING)
+  approvedById    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  approvedBy      User?     @relation(name: "ApprovedAbsences", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([approvedById])
+}
+
+enum AbsenceType {
+  PAID_LEAVE
+  SICK_LEAVE
+  UNPAID_LEAVE
+  MATERNITY_LEAVE
+  PATERNITY_LEAVE
+  OTHER
+}
+
+enum AbsenceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model Delay {
+  id              String    @id @default(cuid())
+  tenantId        String
+  employeeId      String
+  date            DateTime
+  timeInMinutes   Int
+  reason          String?
+  recordedById    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  recordedBy      User?     @relation(name: "RecordedDelays", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([recordedById])
+}
+
+model SalaryLoan {
+  id              String    @id @default(cuid())
+  tenantId        String
+  employeeId      String
+  amount          Decimal   @db.Decimal(14, 2)
+  interestRate    Decimal?  @db.Decimal(5, 2) @default(0.00)
+  startDate       DateTime
+  endDate         DateTime?
+  monthlyDeduction Decimal? @db.Decimal(14, 2)
+  status          LoanStatus @default(PENDING)
+  approvedById    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  approvedBy      User?     @relation(name: "ApprovedLoans", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([approvedById])
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  PARTIALLY_PAID
+}
+
+model Payroll {
+  id              String    @id @default(cuid())
+  tenantId        String
+  employeeId      String
+  payPeriodStart  DateTime
+  payPeriodEnd    DateTime
+  grossSalary     Decimal   @db.Decimal(14, 2)
+  netSalary       Decimal   @db.Decimal(14, 2)
+  deductions      Decimal   @db.Decimal(14, 2)
+  bonuses         Decimal   @db.Decimal(14, 2) @default(0)
+  taxes           Decimal   @db.Decimal(14, 2)
+  status          PayrollStatus @default(DRAFT)
+  generatedById   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  generatedBy     User?     @relation(name: "GeneratedPayrolls", fields: [generatedById], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, employeeId, payPeriodStart, payPeriodEnd])
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([generatedById])
+}
+
+enum PayrollStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  PAID
+  CANCELLED
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -154,6 +328,7 @@ enum JournalSource {
   INVOICE
   CASH
   MANUAL
+  PAYROLL
 }
 
 model JournalEntryLine {
@@ -434,24 +609,23 @@ enum InvoiceStatus {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Quote {
-  id           String       @id @default(cuid())
+  id           String      @id @default(cuid())
   tenantId     String
   number       String
   customerId   String
   userId       String?
-  date         DateTime     @default(now())
+  date         DateTime    @default(now())
   validUntil   DateTime?
-  status       QuoteStatus  @default(DRAFT)
-  subtotal     Decimal      @db.Decimal(14, 2)
-  taxTotal     Decimal      @db.Decimal(14, 2)
-  total        Decimal      @db.Decimal(14, 2)
+  status       QuoteStatus @default(DRAFT)
+  subtotal     Decimal     @db.Decimal(14, 2)
+  taxTotal     Decimal     @db.Decimal(14, 2)
+  total        Decimal     @db.Decimal(14, 2)
   notes        String?
-  acceptanceRef String?     // référence signée par le client
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
-  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer     Customer     @relation(fields: [customerId], references: [id])
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer     Customer    @relation(fields: [customerId], references: [id])
   items        QuoteItem[]
   sale         Sale?
 
@@ -463,8 +637,9 @@ enum QuoteStatus {
   DRAFT
   SENT
   ACCEPTED
-  REFUSED
+  REJECTED
   EXPIRED
+  REFUSED
   CONVERTED
 }
 
@@ -492,9 +667,7 @@ model PurchaseOrder {
   tenantId     String
   number       String
   supplierId   String
-  userId       String?
   date         DateTime            @default(now())
-  expectedDate DateTime?
   status       PurchaseOrderStatus @default(DRAFT)
   subtotal     Decimal             @db.Decimal(14, 2)
   taxTotal     Decimal             @db.Decimal(14, 2)
@@ -615,6 +788,7 @@ enum CashSource {
   PURCHASE
   INVOICE_PAYMENT
   MANUAL
+  PAYROLL
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

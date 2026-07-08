@@ -236,3 +236,68 @@ export function useDeliveryNoteAction() {
 export function useDeleteDeliveryNote() {
   return useMutationToast("delivery-notes", (id: string) => API(`/api/delivery-notes/${id}`, { method: "DELETE" }), "Bon supprimé");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HR Module — Employees
+// ─────────────────────────────────────────────────────────────────────────────
+export function useCreateEmployee() {
+  return useMutationToast("employees", (b) => API("/api/employees", { method: "POST", body: JSON.stringify(b) }), "Employé créé");
+}
+export function useUpdateEmployee() {
+  return useMutationToast("employees", (b) => API("/api/employees", { method: "PATCH", body: JSON.stringify(b) }), "Employé mis à jour");
+}
+export function useDeleteEmployee() {
+  return useMutationToast("employees", (id: string) => API(`/api/employees?id=${id}`, { method: "DELETE" }), "Employé supprimé");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HR Module — Absences
+// ─────────────────────────────────────────────────────────────────────────────
+export function useCreateAbsence() {
+  return useMutationToast("absences", (b) => API("/api/absences", { method: "POST", body: JSON.stringify(b) }), "Absence créée");
+}
+export function useUpdateAbsence() {
+  return useMutationToast("absences", (b) => API("/api/absences", { method: "PATCH", body: JSON.stringify(b) }), "Absence mise à jour");
+}
+export function useDeleteAbsence() {
+  return useMutationToast("absences", (id: string) => API(`/api/absences?id=${id}`, { method: "DELETE" }), "Absence supprimée");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HR Module — Delays
+// ─────────────────────────────────────────────────────────────────────────────
+export function useCreateDelay() {
+  return useMutationToast("delays", (b) => API("/api/delays", { method: "POST", body: JSON.stringify(b) }), "Retard enregistré");
+}
+export function useUpdateDelay() {
+  return useMutationToast("delays", (b) => API("/api/delays", { method: "PATCH", body: JSON.stringify(b) }), "Retard mis à jour");
+}
+export function useDeleteDelay() {
+  return useMutationToast("delays", (id: string) => API(`/api/delays?id=${id}`, { method: "DELETE" }), "Retard supprimé");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HR Module — Salary Loans
+// ─────────────────────────────────────────────────────────────────────────────
+export function useCreateSalaryLoan() {
+  return useMutationToast("salary-loans", (b) => API("/api/salary-loans", { method: "POST", body: JSON.stringify(b) }), "Prêt sur salaire créé");
+}
+export function useUpdateSalaryLoan() {
+  return useMutationToast("salary-loans", (b) => API("/api/salary-loans", { method: "PATCH", body: JSON.stringify(b) }), "Prêt sur salaire mis à jour");
+}
+export function useDeleteSalaryLoan() {
+  return useMutationToast("salary-loans", (id: string) => API(`/api/salary-loans?id=${id}`, { method: "DELETE" }), "Prêt sur salaire supprimé");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HR Module — Payrolls
+// ─────────────────────────────────────────────────────────────────────────────
+export function useCreatePayroll() {
+  return useMutationToast("payrolls", (b) => API("/api/payrolls", { method: "POST", body: JSON.stringify(b) }), "Fiche de paie créée");
+}
+export function useUpdatePayroll() {
+  return useMutationToast("payrolls", (b) => API("/api/payrolls", { method: "PATCH", body: JSON.stringify(b) }), "Fiche de paie mise à jour");
+}
+export function useDeletePayroll() {
+  return useMutationToast("payrolls", (id: string) => API(`/api/payrolls?id=${id}`, { method: "DELETE" }), "Fiche de paie supprimée");
+}

@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import {
   LayoutDashboard, Package, Users, Truck, ShoppingCart, Receipt, FileText,
   Wallet, BookOpen, BarChart3, Shield, ScrollText, Search,
-  LogOut, ChevronDown, Menu, X, CircleDot, Building2, ClipboardList,
+  LogOut, ChevronDown, Menu, X, CircleDot, Building2, ClipboardList, Users2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,12 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: "Ressources Humaines",
+    items: [
+      { id: "rh", label: "Gestion RH", icon: Users2, perm: "rh:view" },
+    ],
+  },
+  {
   label: "Administration",
   items: [
     { id: "entreprise", label: "Entreprise", icon: Building2, perm: "admin:company" },
@@ -81,10 +87,11 @@ function canAccess(role: string, perm: string, isSuperAdmin?: boolean): boolean 
     COMPTABLE: [
       "dashboard:view", "comptabilite:*", "facturation:*", "tresorerie:*", "caisse:*", "rapports:*",
       "audit:view", "clients:view", "fournisseurs:view", "produits:view", "ventes:view", "achats:view",
-      "devis:view", "bons:view", "admin:company",
+      "devis:view", "bons:view", "admin:company", "rh:view",
     ],
     VENDEUR: ["dashboard:view", "ventes:*", "clients:*", "facturation:view", "produits:view", "caisse:view", "devis:*", "bons:view"],
     STOCK_MANAGER: ["dashboard:view", "produits:*", "stock:*", "achats:*", "fournisseurs:*", "ventes:view", "bons:*"],
+    HR_MANAGER: ["dashboard:view", "rh:*", "audit:view"],
   };
   const perms = ROLE_PERMS[role] || [];
   if (perms.includes("*")) return true;
@@ -97,6 +104,7 @@ const ROLE_LABELS: Record<string, string> = {
   COMPTABLE: "Comptable",
   VENDEUR: "Vendeur",
   STOCK_MANAGER: "Gestionnaire de stock",
+  HR_MANAGER: "Gestionnaire RH",
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -104,6 +112,7 @@ const ROLE_COLORS: Record<string, string> = {
   COMPTABLE: "bg-teal-500",
   VENDEUR: "bg-lime-500",
   STOCK_MANAGER: "bg-cyan-500",
+  HR_MANAGER: "bg-purple-500",
 };
 
 interface AppShellProps {

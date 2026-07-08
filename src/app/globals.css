@@ -230,15 +230,19 @@
 
 .marquee-track {
   display: flex;
+  align-items: center;
+  gap: 3rem;
   width: max-content;
-  animation: marquee 20s linear infinite;
+  animation: marquee 18s linear infinite;
+  will-change: transform;
 }
 
 @keyframes marquee {
   from {
     transform: translateX(0);
   }
+
   to {
-    transform: translateX(-50%);
+    transform: translateX(calc(-50% - 1.5rem));
   }
 }

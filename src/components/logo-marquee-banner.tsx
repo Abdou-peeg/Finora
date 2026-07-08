@@ -1,18 +1,11 @@
 "use client";
 
 export function LogoMarqueeBanner() {
-  const logos = [
-    "/logo-sidebar.png",
-    "/logo-sidebar.png",
-    "/logo-sidebar.png",
-    "/logo-sidebar.png",
-    "/logo-sidebar.png",
-    "/logo-sidebar.png",
-  ];
+  const logos = Array(8).fill("/logo-sidebar.png");
 
   return (
     <div className="relative w-full overflow-hidden bg-[#F8FBF8] py-3">
-      <div className="marquee-track flex items-center gap-12">
+      <div className="marquee-track">
         {[...logos, ...logos].map((logo, i) => (
           <img
             key={i}

@@ -12,7 +12,6 @@ import { Loader2, ShieldCheck, Zap, Layers, Building2, UserPlus, LogIn } from "l
 import { SENEGAL_CITIES } from "@/lib/format";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
-import { LogoMarqueeBanner } from "@/components/logo-marquee-banner";
 
 type Mode = "login" | "signup";
 
@@ -145,9 +144,13 @@ export function LoginScreen() {
       </div>
 
       {/* Right — Auth forms */}
-      <div className="lg:hidden mb-8">
-        <LogoMarqueeBanner />
+      <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
+  <div className="w-full max-w-md space-y-6">
+    <div className="lg:hidden flex justify-center mb-8">
+      <div className="inline-block bg-white rounded-xl px-4 py-2 shadow-sm">
+        <img src="/logo-sidebar.png" alt="Finora" className="h-16 w-auto" />
       </div>
+    </div>
 
           <Tabs value={mode} onValueChange={(v) => { setMode(v as Mode); setLoginError(null); setSignupError(null); }}>
             <TabsList className="grid w-full grid-cols-2">
@@ -274,5 +277,7 @@ export function LoginScreen() {
             </TabsContent>
           </Tabs>
         </div>
+      </div>
+    </div>
   );
 }

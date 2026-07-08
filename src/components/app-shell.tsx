@@ -166,7 +166,7 @@ useEffect(() => {
         )}
       >
 <div className="h-16 flex items-center px-7 border-b">
-  <img src="/logo-sidebar.png" alt="Finora" className="h-2 w-auto object-contain" />
+  <img src="/logo-sidebar.png" alt="Finora" className="h-30 w-auto object-contain" />
           <Button
             variant="ghost"
             size="icon"

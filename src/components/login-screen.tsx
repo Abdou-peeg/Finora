@@ -103,9 +103,9 @@ export function LoginScreen() {
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
         </div>
-        <div className="relative">
-          <img src="/logo-sidebar.png" alt="Finora" className="h-22 w-auto" />
-        </div>
+        <div className="inline-block bg-white rounded-xl px-4 py-2 shadow-sm">
+        <img src="/logo-sidebar.png" alt="Finora" className="h-16 w-auto" />
+      </div>
         <div className="relative space-y-6 max-w-md">
           <h1 className="text-4xl font-bold leading-tight">
             Gérez votre entreprise en FCFA, en temps réel.

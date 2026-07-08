@@ -212,13 +212,13 @@ export function LoginScreen() {
               <form onSubmit={handleSignup} className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="su-company">Nom de l'entreprise *</Label>
-                  <Input id="su-company" placeholder="Ex. Boutique Téranga SARL" value={su.companyName}
+                  <Input id="su-company" placeholder="Ex. Téranga SARL" value={su.companyName}
                     onChange={(e) => setSu({ ...su, companyName: e.target.value })} required />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="su-name">Votre nom *</Label>
-                    <Input id="su-name" placeholder="Awa Ndiaye" value={su.name}
+                    <Input id="su-name" placeholder="Abdou Gueye" value={su.name}
                       onChange={(e) => setSu({ ...su, name: e.target.value })} required />
                   </div>
                   <div className="space-y-1.5">
@@ -229,13 +229,16 @@ export function LoginScreen() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="su-email">Email *</Label>
-                  <Input id="su-email" type="email" placeholder="awa@teranga.sn" value={su.email}
+                  <Input id="su-email" type="email" placeholder="abdou@teranga.sn" value={su.email}
                     onChange={(e) => setSu({ ...su, email: e.target.value })} required />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="su-password">Mot de passe * <span className="text-xs text-muted-foreground">(min. 8 caractères)</span></Label>
                   <Input id="su-password" type="password" placeholder="••••••••" value={su.password}
                     onChange={(e) => setSu({ ...su, password: e.target.value })} required minLength={8} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">

@@ -104,15 +104,7 @@ export function LoginScreen() {
           </svg>
         </div>
         <div className="relative">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-white/95 backdrop-blur p-2.5 h-12 w-12 flex items-center justify-center">
-  <img src="/logo-icon.png" alt="Finora" className="h-9 w-9 object-contain" />
-</div>
-            <div>
-              <div className="text-2xl font-bold tracking-tight">Finora</div>
-              <div className="text-sm text-white/80">ERP SaaS multi-modules — Sénégal</div>
-            </div>
-          </div>
+          <img src="/logo-sidebar.png" alt="Finora" className="h-16 w-auto" />
         </div>
         <div className="relative space-y-6 max-w-md">
           <h1 className="text-4xl font-bold leading-tight">

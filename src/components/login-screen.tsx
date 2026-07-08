@@ -103,9 +103,13 @@ export function LoginScreen() {
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
         </div>
-        <div className="relative inline-block bg-white/95 backdrop-blur rounded-xl px-5 py-3 shadow-lg">
-  <img src="/logo-sidebar.png" alt="Finora" className="h-12 w-auto" />
-</div>
+        <div className="w-full max-w-md space-y-6">
+    <div className="lg:hidden flex justify-center mb-8">
+      <div className="inline-block bg-white rounded-xl px-4 py-2 shadow-sm">
+        <img src="/logo-sidebar.png" alt="Finora" className="h-16 w-auto" />
+      </div>
+    </div>
+
         <div className="relative space-y-6 max-w-md">
           <h1 className="text-4xl font-bold leading-tight">
             Gérez votre entreprise en FCFA, en temps réel.
@@ -144,13 +148,9 @@ export function LoginScreen() {
       </div>
 
       {/* Right — Auth forms */}
-      <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
-  <div className="w-full max-w-md space-y-6">
-    <div className="lg:hidden flex justify-center mb-8">
-      <div className="inline-block bg-white rounded-xl px-4 py-2 shadow-sm">
-        <img src="/logo-sidebar.png" alt="Finora" className="h-16 w-auto" />
-      </div>
-    </div>
+      <div className="lg:hidden flex items-center justify-center mb-8">
+  <img src="/logo-sidebar.png" alt="Finora" className="h-14 w-auto" />
+</div>
 
           <Tabs value={mode} onValueChange={(v) => { setMode(v as Mode); setLoginError(null); setSignupError(null); }}>
             <TabsList className="grid w-full grid-cols-2">

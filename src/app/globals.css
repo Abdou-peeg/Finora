@@ -128,67 +128,55 @@
 .scroll-fade::-webkit-scrollbar-thumb { background: oklch(0.85 0.02 145); border-radius: 9999px; }
 .dark .scroll-fade::-webkit-scrollbar-thumb { background: oklch(0.35 0.02 160); }
 
-/* Subtle animation for realtime badge */
-/* =========================
-   Realtime badge
-========================= */
 
-@keyframes pulse-dot {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
+/* Animation de chargement Finora : les 4 carreaux du logo échangent
+   cycliquement leurs positions (A→B→C→D→A), pas une simple rotation sur place */
+.logo-quad {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
-.pulse-dot {
-  animation: pulse-dot 1.6s ease-in-out infinite;
+.logo-quad-tl {
+  animation: logo-cycle-tl 2.4s ease-in-out infinite;
+}
+.logo-quad-tr {
+  animation: logo-cycle-tr 2.4s ease-in-out infinite;
+}
+.logo-quad-br {
+  animation: logo-cycle-br 2.4s ease-in-out infinite;
+}
+.logo-quad-bl {
+  animation: logo-cycle-bl 2.4s ease-in-out infinite;
 }
 
-/* =========================
-   Finora Loading Logo
-========================= */
-
-@keyframes logo-spin {
-  0% {
-    transform: rotate(0deg) scale(0.75);
-    opacity: 0;
-  }
-
-  60% {
-    transform: rotate(540deg) scale(1.08);
-    opacity: 1;
-  }
-
-  80% {
-    transform: rotate(700deg) scale(0.98);
-  }
-
-  100% {
-    transform: rotate(720deg) scale(1);
-    opacity: 1;
-  }
+@keyframes logo-cycle-tl {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(52px, 0); }
+  50%  { transform: translate(52px, 52px); }
+  75%  { transform: translate(0, 52px); }
+  100% { transform: translate(0, 0); }
 }
-
-@keyframes logo-spin-loop {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+@keyframes logo-cycle-tr {
+  0%   { transform: translate(52px, 0); }
+  25%  { transform: translate(52px, 52px); }
+  50%  { transform: translate(0, 52px); }
+  75%  { transform: translate(0, 0); }
+  100% { transform: translate(52px, 0); }
 }
-
-.animate-logo {
-  animation:
-    logo-spin 1.8s cubic-bezier(.22, 1, .36, 1),
-    logo-spin-loop 8s linear infinite;
-
-  animation-delay: 0s, 1.8s;
-  animation-fill-mode: forwards;
-  transform-origin: center;
-  will-change: transform;
+@keyframes logo-cycle-br {
+  0%   { transform: translate(52px, 52px); }
+  25%  { transform: translate(0, 52px); }
+  50%  { transform: translate(0, 0); }
+  75%  { transform: translate(52px, 0); }
+  100% { transform: translate(52px, 52px); }
+}
+@keyframes logo-cycle-bl {
+  0%   { transform: translate(0, 52px); }
+  25%  { transform: translate(0, 0); }
+  50%  { transform: translate(52px, 0); }
+  75%  { transform: translate(52px, 52px); }
+  100% { transform: translate(0, 52px); }
 }
 
 .skeleton-shimmer {

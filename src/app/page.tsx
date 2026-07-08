@@ -25,6 +25,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PaywallScreen } from "@/components/paywall-screen";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { PlatformView } from "@/components/views/platform";
+import { LogoLoadingSpinner } from "@/components/logo-loading-spinner";
+
 export default function Home() {
   const { data: session, status } = useSession();
   const [view, setView] = useState<string>("dashboard");
@@ -32,12 +34,8 @@ export default function Home() {
 
 if (status === "loading") {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-white">
-      <img
-        src="/logo-icon.png"
-        alt="Finora"
-        className="h-32 w-32 animate-spin"
-      />
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-white">
+      <LogoLoadingSpinner />
       <div className="text-[#0d5d4a]/70 text-sm tracking-wide">Chargement…</div>
     </div>
   );

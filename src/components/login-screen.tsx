@@ -104,7 +104,7 @@ export function LoginScreen() {
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
         </div>
-        <div className="hidden lg:block mb-8">
+        <div className="hidden lg:block mb-8 -mx-12 -mt-12">
       <LogoMarqueeBanner />
         </div>
         <div className="relative space-y-6 max-w-md">

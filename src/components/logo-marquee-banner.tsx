@@ -11,7 +11,7 @@ export function LogoMarqueeBanner() {
   ];
 
   return (
-    <div className="relative w-full overflow-hidden bg-white py-3">
+    <div className="relative w-full overflow-hidden bg-[#F8FBF8] py-3">
       <div className="marquee-track flex items-center gap-12">
         {[...logos, ...logos].map((logo, i) => (
           <img

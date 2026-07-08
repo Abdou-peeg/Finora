@@ -278,6 +278,5 @@ export function LoginScreen() {
           </Tabs>
         </div>
       </div>
-    </div>
   );
 }

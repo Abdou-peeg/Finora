@@ -165,12 +165,8 @@ useEffect(() => {
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-<div className="h-16 flex items-center gap-2.5 px-2 border-b">
-  <img src="/logo-icon.png" alt="Finora" className="h-18 w-18 object-contain" />
-          <div>
-            <div className="font-bold leading-tight text-[#0d5d4a]">Finora</div>
-            <div className="text-[10px] text-muted-foreground leading-tight">Gestion d'entreprise nouvelle génération</div>
-          </div>
+<div className="h-16 flex items-center px-3 border-b">
+  <img src="/logo-sidebar.png" alt="Finora" className="h-10 w-auto object-contain" />
           <Button
             variant="ghost"
             size="icon"

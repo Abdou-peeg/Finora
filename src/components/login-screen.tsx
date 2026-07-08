@@ -12,6 +12,7 @@ import { Loader2, ShieldCheck, Zap, Layers, Building2, UserPlus, LogIn } from "l
 import { SENEGAL_CITIES } from "@/lib/format";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import { LogoMarqueeBanner } from "@/components/logo-marquee-banner";
 
 type Mode = "login" | "signup";
 
@@ -103,9 +104,9 @@ export function LoginScreen() {
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
         </div>
-        <div className="inline-block bg-white rounded-xl px-4 py-2 shadow-sm">
-        <img src="/logo-sidebar.png" alt="Finora" className="h-16 w-auto" />
-      </div>
+        <div className="hidden lg:block mb-8">
+      <LogoMarqueeBanner />
+        </div>
         <div className="relative space-y-6 max-w-md">
           <h1 className="text-4xl font-bold leading-tight">
             Gérez votre entreprise en FCFA, en temps réel.

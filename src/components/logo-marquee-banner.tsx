@@ -18,7 +18,7 @@ export function LogoMarqueeBanner() {
             key={i}
             src={logo}
             alt="Finora"
-            className="h-10 w-auto flex-shrink-0"
+            className="h-15 w-auto flex-shrink-0"
           />
         ))}
       </div>

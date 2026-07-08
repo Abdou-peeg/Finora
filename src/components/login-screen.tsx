@@ -119,8 +119,8 @@ export function LoginScreen() {
             <div className="flex items-start gap-3">
               <Zap className="h-5 w-5 mt-0.5 flex-shrink-0" />
               <p className="text-sm text-white/90">
-                <strong>Temps réel Supabase</strong> — chaque vente, achat ou règlement est synchronisé
-                instantanément entre tous les utilisateurs connectés via Supabase Realtime.
+                <strong>Synchronisation en Temps réel</strong> — chaque vente, achat ou règlement est synchronisé
+                instantanément entre tous les utilisateurs connectés.
               </p>
             </div>
             <div className="flex items-start gap-3">

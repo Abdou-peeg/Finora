@@ -44,6 +44,7 @@ model Tenant {
   
   // HR Module
   employees       Employee[]
+  attendances     Attendance[]
   absences        Absence[]
   delays          Delay[]
   salaryLoans     SalaryLoan[]
@@ -67,6 +68,7 @@ model User {
   
   // HR Module relations
   employee         Employee?
+  attendances      Attendance[] @relation("RecordedAttendances")
   approvedAbsences Absence[]    @relation("ApprovedAbsences")
   recordedDelays   Delay[]      @relation("RecordedDelays")
   approvedLoans    SalaryLoan[] @relation("ApprovedLoans")
@@ -84,9 +86,7 @@ enum UserRole {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HR MODULE
-// ─────────────────────────────────────────────────────────────────────────────
-
+// HR Module
 model Employee {
   id              String    @id @default(cuid())
   tenantId        String
@@ -109,6 +109,7 @@ model Employee {
 
   tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  attendances     Attendance[]
   absences        Absence[]
   delays          Delay[]
   salaryLoans     SalaryLoan[]
@@ -119,13 +120,36 @@ model Employee {
   @@index([userId])
 }
 
+model Attendance {
+  id              String    @id @default(cuid())
+  tenantId        String
+  employeeId      String
+  date            DateTime
+  status          AttendanceStatus @default(PRESENT)
+  delayMinutes    Int?      @default(0)
+  punchIn         DateTime?
+  punchOut        DateTime?
+  recordedById    String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  recordedBy      User?     @relation(name: "RecordedAttendances", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, employeeId, date])
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([date])
+}
+
 model Absence {
   id              String    @id @default(cuid())
   tenantId        String
   employeeId      String
   startDate       DateTime
   endDate         DateTime
-  type            AbsenceType
   reason          String?
   status          AbsenceStatus @default(PENDING)
   approvedById    String?
@@ -138,23 +162,6 @@ model Absence {
 
   @@index([tenantId])
   @@index([employeeId])
-  @@index([approvedById])
-}
-
-enum AbsenceType {
-  PAID_LEAVE
-  SICK_LEAVE
-  UNPAID_LEAVE
-  MATERNITY_LEAVE
-  PATERNITY_LEAVE
-  OTHER
-}
-
-enum AbsenceStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  CANCELLED
 }
 
 model Delay {
@@ -162,7 +169,7 @@ model Delay {
   tenantId        String
   employeeId      String
   date            DateTime
-  timeInMinutes   Int
+  minutes         Int
   reason          String?
   recordedById    String?
   createdAt       DateTime  @default(now())
@@ -174,7 +181,6 @@ model Delay {
 
   @@index([tenantId])
   @@index([employeeId])
-  @@index([recordedById])
 }
 
 model SalaryLoan {
@@ -182,11 +188,10 @@ model SalaryLoan {
   tenantId        String
   employeeId      String
   amount          Decimal   @db.Decimal(14, 2)
-  interestRate    Decimal?  @db.Decimal(5, 2) @default(0.00)
-  startDate       DateTime
-  endDate         DateTime?
-  monthlyDeduction Decimal? @db.Decimal(14, 2)
+  reason          String?
   status          LoanStatus @default(PENDING)
+  monthlyDeduction Decimal? @db.Decimal(14, 2) @default(0)
+  repaymentDate   DateTime?
   approvedById    String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -197,15 +202,25 @@ model SalaryLoan {
 
   @@index([tenantId])
   @@index([employeeId])
-  @@index([approvedById])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  DELAY
+}
+
+enum AbsenceStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum LoanStatus {
   PENDING
   APPROVED
   REJECTED
-  PAID
-  PARTIALLY_PAID
+  REPAID
 }
 
 model Payroll {
@@ -214,11 +229,15 @@ model Payroll {
   employeeId      String
   payPeriodStart  DateTime
   payPeriodEnd    DateTime
+  baseSalary      Decimal   @db.Decimal(14, 2)
   grossSalary     Decimal   @db.Decimal(14, 2)
   netSalary       Decimal   @db.Decimal(14, 2)
-  deductions      Decimal   @db.Decimal(14, 2)
+  absencesDeduction Decimal @db.Decimal(14, 2) @default(0)
+  delaysDeduction   Decimal @db.Decimal(14, 2) @default(0)
+  loansDeduction    Decimal @db.Decimal(14, 2) @default(0)
   bonuses         Decimal   @db.Decimal(14, 2) @default(0)
-  taxes           Decimal   @db.Decimal(14, 2)
+  taxes           Decimal   @db.Decimal(14, 2) @default(0)
+  penaltiesWaived Boolean   @default(false)
   status          PayrollStatus @default(DRAFT)
   generatedById   String?
   createdAt       DateTime  @default(now())
@@ -236,11 +255,10 @@ model Payroll {
 
 enum PayrollStatus {
   DRAFT
-  GENERATED
-  APPROVED
+  CONFIRMED
   PAID
-  CANCELLED
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPANY SETTINGS — infos légales, logo, signature

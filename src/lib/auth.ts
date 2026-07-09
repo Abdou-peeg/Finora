@@ -63,7 +63,7 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-export type AppRole = "ADMIN" | "COMPTABLE" | "VENDEUR" | "STOCK_MANAGER";
+export type AppRole = "ADMIN" | "COMPTABLE" | "VENDEUR" | "STOCK_MANAGER" | "RH_MANAGER";
 
 // Permission matrix — single source of truth.
 // Each role maps to a set of allowed module actions.
@@ -84,6 +84,12 @@ const PERMISSIONS: Record<AppRole, string[]> = {
     "achats:view",
     "devis:view",
     "bons:view",
+    "admin:company",
+    "rh:*",
+  ],
+  RH_MANAGER: [
+    "dashboard:view",
+    "rh:*",
     "admin:company",
   ],
   VENDEUR: [

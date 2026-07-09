@@ -24,10 +24,11 @@ const API = (path: string, init?: RequestInit) =>
 // ─────────────────────────────────────────────────────────────────────────────
 // Generic helpers
 // ─────────────────────────────────────────────────────────────────────────────
-export function useList<T = any>(key: string, search = "") {
+export function useList<T = any>(key: string, params?: Record<string, any>) {
+  const searchParams = new URLSearchParams(params).toString();
   return useQuery({
-    queryKey: [key, search],
-    queryFn: () => API(`/api/${key}?search=${encodeURIComponent(search)}`),
+    queryKey: [key, params],
+    queryFn: () => API(`/api/${key}?${searchParams}`),
   });
 }
 
@@ -277,6 +278,16 @@ export function useDeleteDelay() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HR Module — Daily Attendances
+// ─────────────────────────────────────────────────────────────────────────────
+export function useCreateDailyAttendance() {
+  return useMutationToast("daily-attendances", (b) => API("/api/daily-attendances", { method: "POST", body: JSON.stringify(b) }), "Présence enregistrée");
+}
+export function useUpdateDailyAttendance() {
+  return useMutationToast("daily-attendances", (b) => API("/api/daily-attendances", { method: "PATCH", body: JSON.stringify(b) }), "Présence mise à jour");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // HR Module — Salary Loans
 // ─────────────────────────────────────────────────────────────────────────────
 export function useCreateSalaryLoan() {
@@ -300,4 +311,22 @@ export function useUpdatePayroll() {
 }
 export function useDeletePayroll() {
   return useMutationToast("payrolls", (id: string) => API(`/api/payrolls?id=${id}`, { method: "DELETE" }), "Fiche de paie supprimée");
+}
+export function useCalculatePayroll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (b: any) => API("/api/payrolls/calculate", { method: "POST", body: JSON.stringify(b) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payrolls"] });
+      toast.success("Paie calculée automatiquement");
+    },
+    onError: (e: any) => toast.error(e.message || "Erreur lors du calcul"),
+  }) as any;
+}
+export function useExportPayrolls() {
+  return useMutation({
+    mutationFn: (b: any) => API("/api/payrolls/export", { method: "POST", body: JSON.stringify(b) }),
+    onSuccess: () => toast.success("Export généré"),
+    onError: (e: any) => toast.error(e.message || "Erreur lors de l'export"),
+  }) as any;
 }

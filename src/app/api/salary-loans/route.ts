@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         select: { id: true, name: true, email: true },
       },
     },
-    orderBy: { startDate: "desc" },
+    orderBy: { createdAt: "desc" },
   });
   return NextResponse.json({ items });
 }
@@ -42,8 +42,7 @@ export async function POST(req: Request) {
         employeeId: body.employeeId,
         amount: Number(body.amount),
         interestRate: body.interestRate ? Number(body.interestRate) : 0,
-        startDate: new Date(body.startDate),
-        endDate: body.endDate ? new Date(body.endDate) : null,
+        repaymentDate: body.repaymentDate ? new Date(body.repaymentDate) : null,
         monthlyDeduction: body.monthlyDeduction ? Number(body.monthlyDeduction) : null,
         status: body.status || "PENDING",
         approvedById: body.approvedById || null,
@@ -87,8 +86,7 @@ export async function PATCH(req: Request) {
   if (data.amount !== undefined) updateData.amount = Number(data.amount);
   if (data.interestRate !== undefined) updateData.interestRate = Number(data.interestRate);
   if (data.monthlyDeduction !== undefined) updateData.monthlyDeduction = data.monthlyDeduction ? Number(data.monthlyDeduction) : null;
-  if (data.startDate !== undefined) updateData.startDate = new Date(data.startDate);
-  if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
+  if (data.repaymentDate !== undefined) updateData.repaymentDate = data.repaymentDate ? new Date(data.repaymentDate) : null;
   
   const updated = await db.salaryLoan.update({
     where: { id },

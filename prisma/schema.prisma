@@ -188,6 +188,7 @@ model SalaryLoan {
   tenantId        String
   employeeId      String
   amount          Decimal   @db.Decimal(14, 2)
+  interestRate    Decimal?  @db.Decimal(5, 2) @default(0)
   reason          String?
   status          LoanStatus @default(PENDING)
   monthlyDeduction Decimal? @db.Decimal(14, 2) @default(0)

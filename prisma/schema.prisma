@@ -150,6 +150,7 @@ model Absence {
   employeeId      String
   startDate       DateTime
   endDate         DateTime
+  type            AbsenceType @default(OTHER)
   reason          String?
   status          AbsenceStatus @default(PENDING)
   approvedById    String?
@@ -215,6 +216,15 @@ enum AbsenceStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum AbsenceType {
+  PAID_LEAVE
+  SICK_LEAVE
+  UNPAID_LEAVE
+  MATERNITY_LEAVE
+  PATERNITY_LEAVE
+  OTHER
 }
 
 enum LoanStatus {

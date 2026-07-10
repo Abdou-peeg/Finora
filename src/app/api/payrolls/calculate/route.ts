@@ -80,7 +80,7 @@ export async function POST(req: Request) {
         delaysDeduction: new Decimal(delaysDeduction),
         loansDeduction: new Decimal(loansDeduction),
         penaltiesWaived,
-        status: "GENERATED" as PayrollStatus,
+        status: "CONFIRMED" as PayrollStatus,
         generatedById,
       },
       create: {
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
         delaysDeduction: new Decimal(delaysDeduction),
         loansDeduction: new Decimal(loansDeduction),
         penaltiesWaived,
-        status: "GENERATED" as PayrollStatus,
+        status: "CONFIRMED" as PayrollStatus,
         generatedById,
       },
       include: { employee: true },

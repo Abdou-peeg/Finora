@@ -398,7 +398,7 @@ function VisualCalendar({ attendances, employees }: any) {
   const prevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
   const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
 
-  const calendarDays = [];
+  const calendarDays: (number | null)[] = [];
   for (let i = 0; i < (firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1); i++) calendarDays.push(null);
   for (let i = 1; i <= daysInMonth; i++) calendarDays.push(i);
 
@@ -442,7 +442,7 @@ function VisualCalendar({ attendances, employees }: any) {
             const dotColor = !attendance ? '' : attendance.status === 'PRESENT' ? 'bg-green-500' : attendance.status === 'ABSENT' ? 'bg-red-500' : 'bg-amber-500';
 
             return (
-              <div key={i} className={cn("min-h-[100px] p-2 border-b border-r last:border-r-0 relative group", statusColor)}>
+              <div key={i} className={cn("min-h-25 p-2 border-b border-r last:border-r-0 relative group", statusColor)}>
                 {day && (
                   <>
                     <div className="flex justify-between items-start">
@@ -660,7 +660,7 @@ function PayrollDialog({ open, onOpenChange, payroll, employees, onSave, isLoadi
           <div className="space-y-2"><Label>Employé</Label><Select value={form.employeeId || ""} onValueChange={(v) => setForm({ ...form, employeeId: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{employees.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName}</SelectItem>)}</SelectContent></Select></div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Net</Label><Input type="number" value={form.netSalary || ""} onChange={(e) => setForm({ ...form, netSalary: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Statut</Label><Select value={form.status || "GENERATED"} onValueChange={(v) => setForm({ ...form, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="GENERATED">Générée</SelectItem><SelectItem value="PAID">Payée</SelectItem></SelectContent></Select></div>
+            <div className="space-y-2"><Label>Statut</Label><Select value={form.status || "DRAFT"} onValueChange={(v) => setForm({ ...form, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="DRAFT">Brouillon</SelectItem><SelectItem value="CONFIRMED">Confirmée</SelectItem><SelectItem value="PAID">Payée</SelectItem></SelectContent></Select></div>
           </div>
         </div>
         <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button><Button onClick={() => { onSave(form); onOpenChange(false); }} disabled={isLoading}>Enregistrer</Button></DialogFooter>

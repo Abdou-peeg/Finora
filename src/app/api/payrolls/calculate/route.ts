@@ -1,4 +1,5 @@
 import { Decimal } from "@prisma/client/runtime/library";
+import { PayrollStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/guard";
 import { db } from "@/lib/db";
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
       where: {
         tenantId,
         employeeId,
-        status: { in: ["APPROVED", "PARTIALLY_PAID"] },
+        status: { in: ["APPROVED"] },
       },
     });
     let loansDeduction = activeLoans.reduce((acc, curr) => acc + Number(curr.monthlyDeduction || 0), 0);
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
         delaysDeduction: new Decimal(delaysDeduction),
         loansDeduction: new Decimal(loansDeduction),
         penaltiesWaived,
-        status: "GENERATED",
+        status: "GENERATED" as PayrollStatus,
         generatedById,
       },
       create: {
@@ -94,7 +95,7 @@ export async function POST(req: Request) {
         delaysDeduction: new Decimal(delaysDeduction),
         loansDeduction: new Decimal(loansDeduction),
         penaltiesWaived,
-        status: "GENERATED",
+        status: "GENERATED" as PayrollStatus,
         generatedById,
       },
       include: { employee: true },

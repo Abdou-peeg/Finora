@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     const created = await db.purchaseOrder.create({
       data: {
         tenantId, number,
-        supplierId: supplier.id, userId: g.user.id,
+        supplierId: supplier.id,
         date: new Date(),
         expectedDate: body.expectedDate ? new Date(body.expectedDate) : null,
         status: "DRAFT",

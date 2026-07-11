@@ -441,23 +441,23 @@ export async function generateInvoiceFromSale(saleId: string, user: any) {
     const saleTaxTotal = n(sale.taxTotal);
 
     const inv = await tx.invoice.create({
-      data: {
-        tenantId: sale.tenantId,
-        number,
-        type: "CUSTOMER",
-        partyType: "CUSTOMER",
-        partyId: sale.customerId,
-        partyName: sale.customer.name,
-        saleId: sale.id,
-        issueDate: new Date(),
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        subtotal: saleSubtotal,
-        taxTotal: saleTaxTotal,
-        total: saleTotal,
-        paidAmount: 0,
-        status: "UNPAID",
-      },
-    });
+    data: {
+      tenantId: sale.tenantId,
+      number,
+      type: "CUSTOMER",
+      partyType: "CUSTOMER",
+      partyId: sale.customerId,
+      partyName: sale.customer.name,
+      saleId: sale.id,
+      issueDate: new Date(),
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      subtotal: saleSubtotal,
+      taxTotal: saleTaxTotal,
+      total: saleTotal,
+      paidAmount: saleTotal, // déjà encaissé à la confirmation de la vente
+      status: "PAID",
+    },
+  });
 
     await tx.sale.update({ where: { id: sale.id }, data: { status: "INVOICED" } });
 
@@ -506,23 +506,23 @@ export async function generateInvoiceFromPurchase(purchaseId: string, user: any)
     const purchaseTaxTotal = n(purchase.taxTotal);
 
     const inv = await tx.invoice.create({
-      data: {
-        tenantId: purchase.tenantId,
-        number,
-        type: "SUPPLIER",
-        partyType: "SUPPLIER",
-        partyId: purchase.supplierId,
-        partyName: purchase.supplier.name,
-        purchaseId: purchase.id,
-        issueDate: new Date(),
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        subtotal: purchaseSubtotal,
-        taxTotal: purchaseTaxTotal,
-        total: purchaseTotal,
-        paidAmount: 0,
-        status: "UNPAID",
-      },
-    });
+    data: {
+      tenantId: purchase.tenantId,
+      number,
+      type: "SUPPLIER",
+      partyType: "SUPPLIER",
+      partyId: purchase.supplierId,
+      partyName: purchase.supplier.name,
+      purchaseId: purchase.id,
+      issueDate: new Date(),
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      subtotal: purchaseSubtotal,
+      taxTotal: purchaseTaxTotal,
+      total: purchaseTotal,
+      paidAmount: purchaseTotal, // déjà décaissé à la confirmation de l'achat
+      status: "PAID",
+    },
+  });
 
     await tx.purchase.update({ where: { id: purchase.id }, data: { status: "INVOICED" } });
 

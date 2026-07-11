@@ -79,8 +79,8 @@ export function DashboardView() {
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} />
                 <YAxis tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} width={50} />
                 <Tooltip
-                  formatter={(v: any, n) => [currency(v), n === "ventes" ? "Ventes" : "Achats"]}
-                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                  formatter={(value: any, name: any) => [currency(Number(value)), name, ]}
+                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area type="monotone" dataKey="ventes" stroke="oklch(0.45 0.13 160)" fill="url(#g-sales)" strokeWidth={2} name="Ventes" />

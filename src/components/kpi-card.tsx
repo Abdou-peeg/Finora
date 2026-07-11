@@ -21,7 +21,14 @@ export function KpiCard({ label, value, suffix, hint, trend, icon, variant = "de
     danger: "border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20",
   }[variant];
 
-  const formatted = typeof value === "number" ? (format === "number" ? number(value) : currency(value)) : value;
+const numericValue = Number(value);
+
+const formatted =
+  !Number.isNaN(numericValue)
+    ? (format === "number"
+        ? number(numericValue)
+        : currency(numericValue))
+    : String(value);
 
   return (
     <div className={`rounded-xl border p-5 ${variantClass} transition-shadow hover:shadow-md`}>

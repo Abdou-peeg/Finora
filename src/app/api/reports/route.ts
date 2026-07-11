@@ -48,8 +48,8 @@ export async function GET(req: Request) {
       const p = products.find((p) => p.id === it.productId);
       if (!p) continue;
       const prev = productSales.get(p.id) ?? { name: p.name, sku: p.sku, qty: 0, revenue: 0 };
-      prev.qty += it.qty;
-      prev.revenue += it.lineTotal;
+      prev.qty += Number(it.qty);
+      prev.revenue += Number(it.lineTotal);
       productSales.set(p.id, prev);
     }
   }
@@ -61,7 +61,7 @@ export async function GET(req: Request) {
   const customerSales = new Map<string, { name: string; total: number; count: number }>();
   for (const s of sales) {
     const prev = customerSales.get(s.customerId) ?? { name: s.customer?.name ?? "—", total: 0, count: 0 };
-    prev.total += s.total;
+    prev.total += Number(s.total);
     prev.count += 1;
     customerSales.set(s.customerId, prev);
   }

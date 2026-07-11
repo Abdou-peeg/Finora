@@ -52,11 +52,11 @@ export async function GET(req: Request) {
   }
   for (const s of salesLast30) {
     const key = startOfDay(s.date).toISOString().slice(0, 10);
-    if (trend.has(key)) trend.get(key)!.sales += s.total;
+    if (trend.has(key)) trend.get(key)!.sales += Number(s.total);
   }
   for (const p of purchasesLast30) {
     const key = startOfDay(p.date).toISOString().slice(0, 10);
-    if (trend.has(key)) trend.get(key)!.purchases += p.total;
+    if (trend.has(key)) trend.get(key)!.purchases += Number(p.total);
   }
   const trendArray = Array.from(trend.entries()).map(([date, v]) => ({ date, ...v }));
 

@@ -551,4 +551,117 @@ export async function generateInvoiceFromPurchase(purchaseId: string, user: any)
   }, TX_OPTS_LONG);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYROLL PAYMENT — atomic transaction
+// ─────────────────────────────────────────────────────────────────────────────
+const ACCOUNT_CODES_PAYROLL = {
+  SALAIRE: "641000", // Charges sociales - salaires et traitements
+  CAISSE: "570000", // Caisse
+};
+
+export async function payPayroll(payrollId: string, user: any) {
+  return db.$transaction(async (tx) => {
+   const payroll = await tx.payroll.findUnique({
+     where: { id: payrollId },
+     include: { employee: true, tenant: true },
+   });
+   if (!payroll) throw new Error("Fiche de paie introuvable");
+   if (payroll.status === "PAID" || payroll.status === "CANCELLED") {
+     throw new Error(`Fiche de paie déjà ${payroll.status}`);
+   }
+
+   const netSalaryAmount = n(payroll.netSalary);
+
+   // 1. Cash entry (OUT) - Débiter la caisse
+   const lastCash = await tx.cashEntry.findFirst({
+     where: { tenantId: payroll.tenantId },
+     orderBy: { date: "desc" },
+   });
+   const balanceAfter = round2(n(lastCash?.balanceAfter) - netSalaryAmount);
+   const cashReference = `PAI-${payroll.employee.firstName?.charAt(0)}${payroll.employee.lastName?.charAt(0)}-${Date.now()}`;
+    
+   await tx.cashEntry.create({
+     data: {
+       tenantId: payroll.tenantId,
+       reference: cashReference,
+       type: "OUT",
+       amount: netSalaryAmount,
+       label: `Paiement ${payroll.employee.firstName} ${payroll.employee.lastName}`,
+       source: "PAYROLL",
+       sourceId: payroll.id,
+       date: new Date(),
+       balanceAfter,
+     },
+   });
+
+   // 2. Accounting entry (double-entry)
+   const [accSalaire, accCaisse] = await Promise.all([
+     getOrCreateAccount(
+       payroll.tenantId,
+       ACCOUNT_CODES_PAYROLL.SALAIRE,
+       "Charges sociales - Salaires et traitements",
+       "EXPENSE"
+     ),
+     getOrCreateAccount(
+       payroll.tenantId,
+       ACCOUNT_CODES_PAYROLL.CAISSE,
+       "Caisse",
+       "ASSET"
+     ),
+   ]);
+
+   const je = await tx.journalEntry.create({
+     data: {
+       tenantId: payroll.tenantId,
+       reference: `PAI-${payroll.employee.firstName}-${payroll.employee.lastName}-${new Date().getTime()}`,
+       description: `Paiement paie ${payroll.employee.firstName} ${payroll.employee.lastName} — Période ${new Date(payroll.payPeriodStart).toLocaleDateString("fr-FR")} à ${new Date(payroll.payPeriodEnd).toLocaleDateString("fr-FR")}`,
+       source: "PAYROLL",
+       sourceId: payroll.id,
+       date: new Date(),
+       lines: {
+         create: [
+           { accountId: accSalaire.id, debit: netSalaryAmount, credit: 0 }, // Débit salaire
+           { accountId: accCaisse.id, debit: 0, credit: netSalaryAmount }, // Crédit caisse
+         ],
+       },
+     },
+   });
+
+   // 3. Update payroll status
+   const updated = await tx.payroll.update({
+     where: { id: payrollId },
+     data: { status: "PAID" },
+     include: {
+       employee: true,
+       tenant: true,
+     },
+   });
+
+   // 4. Audit log
+   await tx.auditLog.create({
+     data: {
+       tenantId: payroll.tenantId,
+       userId: user.id,
+       userName: user.name,
+       action: "PAYROLL_PAID",
+       entity: "Payroll",
+       entityId: payroll.id,
+       details: `Paiement de paie pour ${payroll.employee.firstName} ${payroll.employee.lastName} — Montant net: ${netSalaryAmount} ${payroll.tenant.currency}. Caisse débitée, écriture comptable ${je.reference}.`,
+     },
+   });
+
+   // 5. Notify
+   void notify({
+     tenantId: payroll.tenantId,
+     type: "payroll.paid",
+     title: "Paie payée",
+     message: `${payroll.employee.firstName} ${payroll.employee.lastName} — ${netSalaryAmount} ${payroll.tenant.currency}`,
+     level: "success",
+     meta: { payrollId: payroll.id, employeeName: `${payroll.employee.firstName} ${payroll.employee.lastName}` },
+   });
+
+   return updated;
+  }, TX_OPTS);
+}
+
 export { nextReference, round2, ACCOUNT_CODES };

@@ -330,3 +330,38 @@ export function useExportPayrolls() {
     onError: (e: any) => toast.error(e.message || "Erreur lors de l'export"),
   }) as any;
 }
+export function usePayPayroll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payrollId: string) =>
+      API(`/api/payrolls/${payrollId}/pay`, { method: "POST", body: JSON.stringify({}) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payrolls"] });
+      qc.invalidateQueries({ queryKey: ["cash"] });
+      qc.invalidateQueries({ queryKey: ["journal"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["audit"] });
+      toast.success("Paie payée avec succès");
+    },
+    onError: (e: any) => toast.error(e.message || "Erreur lors du paiement"),
+  }) as any;
+}
+export function usePayAllPayrolls() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { payPeriodStart: string; payPeriodEnd: string }) =>
+      API("/api/payrolls/pay-all", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payrolls"] });
+      qc.invalidateQueries({ queryKey: ["cash"] });
+      qc.invalidateQueries({ queryKey: ["journal"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["audit"] });
+      toast.success("Toutes les paies ont été payées");
+    },
+    onError: (e: any) => toast.error(e.message || "Erreur lors du paiement"),
+  }) as any;
+}

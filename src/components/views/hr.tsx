@@ -8,7 +8,7 @@ import {
   useCreateDelay, useUpdateDelay, useDeleteDelay,
   useCreateSalaryLoan, useUpdateSalaryLoan, useDeleteSalaryLoan,
   useCreatePayroll, useUpdatePayroll, useDeletePayroll,
-  useCalculatePayroll, useExportPayrolls,
+  useCalculatePayroll, useExportPayrolls, usePayPayroll, usePayAllPayrolls,
   useCreateDailyAttendance, useUpdateDailyAttendance,
 } from "@/hooks/use-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Plus, Trash2, Edit2, AlertCircle, Clock, DollarSign, FileText, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Download, Check, X } from "lucide-react";
+import { Users, Plus, Trash2, Edit2, AlertCircle, Clock, DollarSign, FileText, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Download, Check, X, Send, Printer, Calculator } from "lucide-react";
 import { currency, dateTimeShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -557,10 +557,14 @@ function LoanDialog({ open, onOpenChange, loan, employees, onSave, isLoading }: 
 function PayrollView({ employees, payrolls, setEditingPayroll, handleDeletePayroll }: any) {
   const calculatePayroll = useCalculatePayroll();
   const exportPayrolls = useExportPayrolls();
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const payPayroll = usePayPayroll();
+  const payAllPayrolls = usePayAllPayrolls();
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [penaltiesWaived, setPenaltiesWaived] = useState(false);
 
-  const handleCalculate = async () => {
+  const filteredPayrolls = payrolls.filter((p: any) => p.payPeriodStart.startsWith(selectedMonth));
+
+  const handleCalculateAll = async () => {
     const startDate = new Date(`${selectedMonth}-01`);
     const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
     
@@ -574,9 +578,30 @@ function PayrollView({ employees, payrolls, setEditingPayroll, handleDeletePayro
     }
   };
 
+  const handlePayAll = async () => {
+    const confirmed = confirm("Êtes-vous sûr de vouloir payer toutes les paies confirmées pour cette période? Cela débitera la caisse et créera les écritures comptables.");
+    if (!confirmed) return;
+
+    const startDate = new Date(`${selectedMonth}-01`);
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    
+    await payAllPayrolls.mutateAsync({
+      payPeriodStart: startDate.toISOString(),
+      payPeriodEnd: endDate.toISOString()
+    });
+  };
+
+  const handlePayOne = async (payrollId: string) => {
+    const payroll = filteredPayrolls.find((p: any) => p.id === payrollId);
+    const confirmed = confirm(`Êtes-vous sûr de vouloir payer ${payroll.employee.firstName} ${payroll.employee.lastName} (${currency(payroll.netSalary)})? Cela débitera la caisse et créera l'écriture comptable.`);
+    if (!confirmed) return;
+
+    await payPayroll.mutateAsync(payrollId);
+  };
+
   const handleExportAll = async () => {
     const res = await exportPayrolls.mutateAsync({
-      payrollIds: payrolls.map((p: any) => p.id),
+      payrollIds: filteredPayrolls.map((p: any) => p.id),
       format: 'pdf'
     });
     if (res.content) {
@@ -600,53 +625,219 @@ function PayrollView({ employees, payrolls, setEditingPayroll, handleDeletePayro
     }
   };
 
+  const confirmedCount = filteredPayrolls.filter((p: any) => p.status === "CONFIRMED").length;
+  const paidCount = filteredPayrolls.filter((p: any) => p.status === "PAID").length;
+  const totalNetSalary = filteredPayrolls.reduce((sum: number, p: any) => sum + Number(p.netSalary), 0);
+
   return (
     <div className="space-y-4">
-      <Card><CardContent className="p-4 flex flex-col sm:flex-row items-end gap-4">
-        <div className="space-y-2 flex-1">
-          <Label>Mois de paie</Label>
-          <Input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
-        </div>
-        <div className="flex items-center gap-2 mb-2">
-          <input type="checkbox" id="waive" checked={penaltiesWaived} onChange={(e) => setPenaltiesWaived(e.target.checked)} />
-          <Label htmlFor="waive" className="cursor-pointer">Pardonner les pénalités</Label>
-        </div>
-        <Button onClick={handleCalculate} disabled={calculatePayroll.isPending} className="w-full sm:w-auto">
-          {calculatePayroll.isPending ? "Calcul..." : "Calculer Tout"}
-        </Button>
-        <Button variant="outline" onClick={handleExportAll} className="w-full sm:w-auto">
-          <Download className="h-4 w-4 mr-2" /> État Global
-        </Button>
-      </CardContent></Card>
+      {/* Sélection et commandes globales */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-green-600" />
+            Traitement de la paie
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="month-select">Mois de paie</Label>
+              <Input
+                id="month-select"
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 flex items-end">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="waive"
+                  checked={penaltiesWaived}
+                  onChange={(e) => setPenaltiesWaived(e.target.checked)}
+                  className="rounded"
+                />
+                <Label htmlFor="waive" className="cursor-pointer text-sm">
+                  Pardonner les pénalités
+                </Label>
+              </div>
+            </div>
+          </div>
 
-      <Card><CardContent className="p-4">
-        <div className="rounded-md border overflow-hidden">
-          <Table>
-            <TableHeader><TableRow>
-              <TableHead>Employé</TableHead>
-              <TableHead>Brut</TableHead>
-              <TableHead>Déductions</TableHead>
-              <TableHead>Net</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {payrolls.filter((p: any) => p.payPeriodStart.startsWith(selectedMonth)).map((p: any) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{p.employee.firstName} {p.employee.lastName}</TableCell>
-                  <TableCell>{currency(p.grossSalary)}</TableCell>
-                  <TableCell className="text-red-600">-{currency(Number(p.absencesDeduction) + Number(p.delaysDeduction) + Number(p.loansDeduction))}</TableCell>
-                  <TableCell className="font-bold text-green-700">{currency(p.netSalary)}</TableCell>
-                  <TableCell className="text-right"><div className="flex justify-end gap-1">
-                    <Button size="sm" variant="outline" onClick={() => handleExportOne(p.id)} title="Imprimer Fiche"><FileText className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingPayroll(p)}><Edit2 className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDeletePayroll(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                  </div></TableCell>
+          {/* Boutons d'action globaux */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Button
+              onClick={handleCalculateAll}
+              disabled={calculatePayroll.isPending}
+              variant="outline"
+              className="gap-2"
+            >
+              <Calculator className="h-4 w-4" />
+              {calculatePayroll.isPending ? "Calcul..." : "Tout calculer"}
+            </Button>
+            <Button
+              onClick={handlePayAll}
+              disabled={payAllPayrolls.isPending || confirmedCount === 0}
+              className="gap-2 bg-green-600 hover:bg-green-700"
+            >
+              <Send className="h-4 w-4" />
+              {payAllPayrolls.isPending ? "Paiement..." : "Tout payer"}
+            </Button>
+            <Button
+              onClick={handleExportAll}
+              disabled={exportPayrolls.isPending || filteredPayrolls.length === 0}
+              variant="outline"
+              className="gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              {exportPayrolls.isPending ? "Export..." : "Tout imprimer"}
+            </Button>
+          </div>
+
+          {/* Résumé */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-muted rounded-md text-sm">
+            <div>
+              <span className="text-muted-foreground">Calculées:</span>
+              <span className="ml-2 font-semibold">{filteredPayrolls.length}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Confirmées:</span>
+              <span className="ml-2 font-semibold text-amber-600">{confirmedCount}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Payées:</span>
+              <span className="ml-2 font-semibold text-green-600">{paidCount}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Montant total:</span>
+              <span className="ml-2 font-semibold">{currency(totalNetSalary)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Liste des employés */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Fiches de paie du mois</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Employé</TableHead>
+                  <TableHead className="text-right">Brut</TableHead>
+                  <TableHead className="text-right">Déductions</TableHead>
+                  <TableHead className="text-right font-bold">Net à payer</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent></Card>
+              </TableHeader>
+              <TableBody>
+                {filteredPayrolls.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                      Aucune fiche de paie pour cette période. Calculez d'abord les paies.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredPayrolls.map((p: any) => {
+                    const totalDeductions = Number(p.absencesDeduction || 0) + Number(p.delaysDeduction || 0) + Number(p.loansDeduction || 0);
+                    const statusColor =
+                      p.status === "PAID"
+                        ? "bg-green-50 text-green-800"
+                        : p.status === "CONFIRMED"
+                        ? "bg-amber-50 text-amber-800"
+                        : "bg-blue-50 text-blue-800";
+                    
+                    return (
+                      <TableRow key={p.id} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">
+                          <div>
+                            {p.employee.firstName} {p.employee.lastName}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{p.employee.email}</div>
+                        </TableCell>
+                        <TableCell className="text-right">{currency(p.grossSalary)}</TableCell>
+                        <TableCell className="text-right text-red-600">-{currency(totalDeductions)}</TableCell>
+                        <TableCell className="text-right font-bold text-green-700">
+                          {currency(p.netSalary)}
+                        </TableCell>
+                        <TableCell>
+                          <span className={cn("px-2 py-1 text-xs font-medium rounded", statusColor)}>
+                            {p.status === "PAID"
+                              ? "Payée"
+                              : p.status === "CONFIRMED"
+                              ? "Confirmée"
+                              : "Brouillon"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {/* Calculer (avec icône) */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              title="Recalculer la fiche"
+                              onClick={() => {
+                                const startDate = new Date(`${selectedMonth}-01`);
+                                const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+                                calculatePayroll.mutateAsync({
+                                  employeeId: p.employee.id,
+                                  payPeriodStart: startDate.toISOString(),
+                                  payPeriodEnd: endDate.toISOString(),
+                                  penaltiesWaived
+                                });
+                              }}
+                              disabled={calculatePayroll.isPending}
+                            >
+                              <Calculator className="h-3.5 w-3.5" />
+                            </Button>
+                            
+                            {/* Payer */}
+                            <Button
+                              size="sm"
+                              variant={p.status === "PAID" ? "outline" : "default"}
+                              className={
+                                p.status === "PAID"
+                                  ? ""
+                                  : "bg-green-600 hover:bg-green-700 text-white"
+                              }
+                              title={
+                                p.status === "PAID"
+                                  ? "Déjà payée"
+                                  : "Payer cette fiche"
+                              }
+                              onClick={() => handlePayOne(p.id)}
+                              disabled={p.status === "PAID" || payPayroll.isPending}
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                            </Button>
+                            
+                            {/* Imprimer */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              title="Imprimer la fiche de paie"
+                              onClick={() => handleExportOne(p.id)}
+                              disabled={exportPayrolls.isPending}
+                            >
+                              <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

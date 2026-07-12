@@ -330,3 +330,16 @@ export function useExportPayrolls() {
     onError: (e: any) => toast.error(e.message || "Erreur lors de l'export"),
   }) as any;
 }
+export function usePayPayroll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (b: any) => API("/api/payrolls/pay", { method: "POST", body: JSON.stringify(b) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payrolls"] });
+      qc.invalidateQueries({ queryKey: ["cash"] });
+      qc.invalidateQueries({ queryKey: ["journal"] });
+      toast.success("Fiche de paie payée avec succès");
+    },
+    onError: (e: any) => toast.error(e.message || "Erreur lors du paiement"),
+  }) as any;
+}

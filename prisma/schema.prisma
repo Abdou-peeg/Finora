@@ -652,6 +652,7 @@ enum LoanStatus {
   APPROVED
   REJECTED
   REPAID
+  PARTIALLY_PAID
 }
 
 enum PayrollStatus {

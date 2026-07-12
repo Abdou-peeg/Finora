@@ -109,50 +109,55 @@ export async function confirmSale(saleId: string, user: any) {
       });
     }
 
-    // 2. Cash entry (IN)
-    const lastCash = await tx.cashEntry.findFirst({
-      where: { tenantId: sale.tenantId },
-      orderBy: { date: "desc" },
-    });
-    const balanceAfter = round2(n(lastCash?.balanceAfter) + saleTotal);
-    await tx.cashEntry.create({
-      data: {
-        tenantId: sale.tenantId,
-        reference: `CAISSE-${sale.reference}`,
-        type: "IN",
-        amount: saleTotal,
-        label: `Vente ${sale.reference}`,
-        source: "SALE",
-        sourceId: sale.id,
-        date: new Date(),
-        balanceAfter,
-      },
-    });
-
-    // 3. Accounting entry (double-entry, balanced)
-    const [accClient, accVentes, accTVA, accCaisse] = await Promise.all([
-      getOrCreateAccount(sale.tenantId, ACCOUNT_CODES.CLIENTS, "Clients", "ASSET"),
-      getOrCreateAccount(sale.tenantId, ACCOUNT_CODES.VENTES, "Ventes de marchandises", "REVENUE"),
-      getOrCreateAccount(sale.tenantId, ACCOUNT_CODES.TVA_COLLECTEE, "TVA collectée", "LIABILITY"),
-      getOrCreateAccount(sale.tenantId, ACCOUNT_CODES.CAISSE, "Caisse", "ASSET"),
-    ]);
-    const je = await tx.journalEntry.create({
-      data: {
-        tenantId: sale.tenantId,
-        reference: `VTE-${sale.reference}`,
-        description: `Vente ${sale.reference} — ${sale.reference}`,
-        source: "SALE",
-        sourceId: sale.id,
-        date: new Date(),
-        lines: {
-          create: [
-            { accountId: accCaisse.id, debit: saleTotal, credit: 0 }, // Débit caisse
-            { accountId: accVentes.id, debit: 0, credit: saleSubtotal }, // Crédit ventes
-            { accountId: accTVA.id, debit: 0, credit: saleTaxTotal }, // Crédit TVA
-          ],
+    // If the sale is linked to an invoice, the cash and accounting entries will be handled by the invoice payment.
+    // Otherwise, create cash and accounting entries directly for the sale.
+    let je = null;
+    if (!sale.invoiceId) {
+      // 2. Cash entry (IN)
+      const lastCash = await tx.cashEntry.findFirst({
+        where: { tenantId: sale.tenantId },
+        orderBy: { date: "desc" },
+      });
+      const balanceAfter = round2(n(lastCash?.balanceAfter) + saleTotal);
+      await tx.cashEntry.create({
+        data: {
+          tenantId: sale.tenantId,
+          reference: `CAISSE-${sale.reference}`,
+          type: "IN",
+          amount: saleTotal,
+          label: `Vente ${sale.reference}`,
+          source: "SALE",
+          sourceId: sale.id,
+          date: new Date(),
+          balanceAfter,
         },
-      },
-    });
+      });
+
+      // 3. Accounting entry (double-entry, balanced)
+      const [accClient, accVentes, accTVA, accCaisse] = await Promise.all([
+        getOrCreateAccount(sale.tenantId, ACCOUNT_CODES.CLIENTS, "Clients", "ASSET"),
+        getOrCreateAccount(sale.tenantId, ACCOUNT_CODES.VENTES, "Ventes de marchandises", "REVENUE"),
+        getOrCreateAccount(sale.tenantId, ACCOUNT_CODES.TVA_COLLECTEE, "TVA collectée", "LIABILITY"),
+        getOrCreateAccount(sale.tenantId, ACCOUNT_CODES.CAISSE, "Caisse", "ASSET"),
+      ]);
+      je = await tx.journalEntry.create({
+        data: {
+          tenantId: sale.tenantId,
+          reference: `VTE-${sale.reference}`,
+          description: `Vente ${sale.reference} — ${sale.reference}`,
+          source: "SALE",
+          sourceId: sale.id,
+          date: new Date(),
+          lines: {
+            create: [
+              { accountId: accCaisse.id, debit: saleTotal, credit: 0 }, // Débit caisse
+              { accountId: accVentes.id, debit: 0, credit: saleSubtotal }, // Crédit ventes
+              { accountId: accTVA.id, debit: 0, credit: saleTaxTotal }, // Crédit TVA
+            ],
+          },
+        },
+      });
+    }
 
     // 4. Update sale status
     const updated = await tx.sale.update({
@@ -169,7 +174,7 @@ export async function confirmSale(saleId: string, user: any) {
         action: "SALE_CONFIRMED",
         entity: "Sale",
         entityId: sale.id,
-        details: `Vente ${sale.reference} confirmée — total ${saleTotal} ${sale.tenant.currency}. Stock mis à jour, caisse alimentée, écriture comptable ${je.reference}.`,
+        details: `Vente ${sale.reference} confirmée — total ${saleTotal} ${sale.tenant.currency}. Stock mis à jour, ${sale.invoiceId ? "facture liée" : "caisse alimentée, écriture comptable " + je?.reference}.`,
       },
     });
 
@@ -179,7 +184,7 @@ export async function confirmSale(saleId: string, user: any) {
       tenantId: sale.tenantId,
       type: "sale.confirmed",
       title: "Vente confirmée",
-      message: `${sale.reference} — ${saleTotal} ${sale.tenant.currency} (stock, caisse et compta à jour)`,
+      message: `${sale.reference} — ${saleTotal} ${sale.tenant.currency} (stock mis à jour, ${sale.invoiceId ? "facture liée" : "caisse et compta à jour"})`,
       level: "success",
       meta: { saleId: sale.id, reference: sale.reference, total: saleTotal },
     });
@@ -549,6 +554,93 @@ export async function generateInvoiceFromPurchase(purchaseId: string, user: any)
 
     return inv;
   }, TX_OPTS_LONG);
+}
+
+export async function payPayroll(payrollId: string, user: any) {
+  return db.$transaction(async (tx) => {
+    const payroll = await tx.payroll.findUnique({
+      where: { id: payrollId },
+      include: { employee: true, tenant: true },
+    });
+    if (!payroll) throw new Error("Fiche de paie introuvable");
+    if (payroll.status === "PAID" || payroll.status === "CANCELLED")
+      throw new Error(`Fiche de paie déjà ${payroll.status}`);
+
+    const payrollNetSalary = n(payroll.netSalary);
+
+    // 1. Cash entry (OUT)
+    const lastCash = await tx.cashEntry.findFirst({
+      where: { tenantId: payroll.tenantId },
+      orderBy: { date: "desc" },
+    });
+    const balanceAfter = round2(n(lastCash?.balanceAfter) - payrollNetSalary);
+    await tx.cashEntry.create({
+      data: {
+        tenantId: payroll.tenantId,
+        reference: `PAY-PAIE-${payroll.id}`,
+        type: "OUT",
+        amount: payrollNetSalary,
+        label: `Paiement fiche de paie ${payroll.employee.firstName} ${payroll.employee.lastName}`,
+        source: "PAYROLL",
+        sourceId: payroll.id,
+        date: new Date(),
+        balanceAfter,
+      },
+    });
+
+    // 2. Accounting entry (double-entry, balanced)
+    const [accCaisse, accSalaires] = await Promise.all([
+      getOrCreateAccount(payroll.tenantId, ACCOUNT_CODES.CAISSE, "Caisse", "ASSET"),
+      getOrCreateAccount(payroll.tenantId, "641000", "Salaires et traitements", "EXPENSE"), // Compte de charge pour les salaires
+    ]);
+    const je = await tx.journalEntry.create({
+      data: {
+        tenantId: payroll.tenantId,
+        reference: `PAIE-${payroll.id}`,
+        description: `Paiement fiche de paie ${payroll.employee.firstName} ${payroll.employee.lastName}`,
+        source: "PAYROLL",
+        sourceId: payroll.id,
+        date: new Date(),
+        lines: {
+          create: [
+            { accountId: accSalaires.id, debit: payrollNetSalary, credit: 0 }, // Débit Salaires
+            { accountId: accCaisse.id, debit: 0, credit: payrollNetSalary }, // Crédit Caisse
+          ],
+        },
+      },
+    });
+
+    // 3. Update payroll status
+    const updated = await tx.payroll.update({
+      where: { id: payrollId },
+      data: { status: "PAID" },
+    });
+
+    // 4. Audit log
+    await tx.auditLog.create({
+      data: {
+        tenantId: payroll.tenantId,
+        userId: user.id,
+        userName: user.name,
+        action: "PAYROLL_PAID",
+        entity: "Payroll",
+        entityId: payroll.id,
+        details: `Fiche de paie de ${payroll.employee.firstName} ${payroll.employee.lastName} payée — ${payrollNetSalary} ${payroll.tenant.currency}. Caisse débitée, écriture comptable ${je.reference}.`,
+      },
+    });
+
+    // 5. Notify
+    void notify({
+      tenantId: payroll.tenantId,
+      type: "payroll.paid",
+      title: "Fiche de paie payée",
+      message: `Fiche de paie de ${payroll.employee.firstName} ${payroll.employee.lastName} payée — ${payrollNetSalary} ${payroll.tenant.currency}`,
+      level: "success",
+      meta: { payrollId: payroll.id, employeeId: payroll.employeeId, netSalary: payrollNetSalary },
+    });
+
+    return updated;
+  }, TX_OPTS);
 }
 
 export { nextReference, round2, ACCOUNT_CODES };

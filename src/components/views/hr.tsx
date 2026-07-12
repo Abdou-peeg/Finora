@@ -8,7 +8,7 @@ import {
   useCreateDelay, useUpdateDelay, useDeleteDelay,
   useCreateSalaryLoan, useUpdateSalaryLoan, useDeleteSalaryLoan,
   useCreatePayroll, useUpdatePayroll, useDeletePayroll,
-  useCalculatePayroll, useExportPayrolls,
+  useCalculatePayroll, useExportPayrolls, usePayPayroll,
   useCreateDailyAttendance, useUpdateDailyAttendance,
 } from "@/hooks/use-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

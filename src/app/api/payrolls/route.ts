@@ -62,9 +62,12 @@ export async function POST(req: Request) {
         employeeId: body.employeeId,
         payPeriodStart: new Date(body.payPeriodStart),
         payPeriodEnd: new Date(body.payPeriodEnd),
+        baseSalary: Number(body.baseSalary || body.grossSalary),
         grossSalary: Number(body.grossSalary),
         netSalary: Number(body.netSalary),
-        deductions: Number(body.deductions || 0),
+        absencesDeduction: Number(body.absencesDeduction || 0),
+        delaysDeduction: Number(body.delaysDeduction || 0),
+        loansDeduction: Number(body.loansDeduction || 0),
         bonuses: Number(body.bonuses || 0),
         taxes: Number(body.taxes || 0),
         status: body.status || "DRAFT",
@@ -108,7 +111,9 @@ export async function PATCH(req: Request) {
   const updateData: any = { ...data };
   if (data.grossSalary !== undefined) updateData.grossSalary = Number(data.grossSalary);
   if (data.netSalary !== undefined) updateData.netSalary = Number(data.netSalary);
-  if (data.deductions !== undefined) updateData.deductions = Number(data.deductions);
+  if (data.absencesDeduction !== undefined) updateData.absencesDeduction = Number(data.absencesDeduction);
+  if (data.delaysDeduction !== undefined) updateData.delaysDeduction = Number(data.delaysDeduction);
+  if (data.loansDeduction !== undefined) updateData.loansDeduction = Number(data.loansDeduction);
   if (data.bonuses !== undefined) updateData.bonuses = Number(data.bonuses);
   if (data.taxes !== undefined) updateData.taxes = Number(data.taxes);
   if (data.payPeriodStart !== undefined) updateData.payPeriodStart = new Date(data.payPeriodStart);

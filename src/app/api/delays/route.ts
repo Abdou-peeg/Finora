@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         tenantId,
         employeeId: body.employeeId,
         date: new Date(body.date),
-        timeInMinutes: Number(body.timeInMinutes),
+        minutes: Number(body.timeInMinutes),
         reason: body.reason || null,
         recordedById: body.recordedById || g.user.id,
       },
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         action: "CREATE",
         entity: "Delay",
         entityId: created.id,
-        details: `Retard enregistré pour ${created.employee.firstName} ${created.employee.lastName} : ${created.timeInMinutes} minutes.`,
+        details: `Retard enregistré pour ${created.employee.firstName} ${created.employee.lastName} : ${created.minutes} minutes.`,
       },
     });
     return NextResponse.json(created);
@@ -87,7 +87,7 @@ export async function PATCH(req: Request) {
   
   const updateData: any = { ...data };
   if (data.date !== undefined) updateData.date = new Date(data.date);
-  if (data.timeInMinutes !== undefined) updateData.timeInMinutes = Number(data.timeInMinutes);
+  if (data.timeInMinutes !== undefined) updateData.minutes = Number(data.timeInMinutes);
   
   const updated = await db.delay.update({
     where: { id },
@@ -109,7 +109,7 @@ export async function PATCH(req: Request) {
       action: "UPDATE",
       entity: "Delay",
       entityId: id,
-      details: `Retard modifié : ${updated.timeInMinutes} minutes.`,
+      details: `Retard modifié : ${updated.minutes} minutes.`,
     },
   });
   return NextResponse.json(updated);

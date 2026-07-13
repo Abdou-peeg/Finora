@@ -170,6 +170,7 @@ model SalaryLoan {
   repaymentDate    DateTime?
   monthlyDeduction Decimal?   @default(0) @db.Decimal(14, 2)
   interestRate     Decimal?   @default(0) @db.Decimal(5, 2)
+
   approvedBy       User?      @relation("ApprovedLoans", fields: [approvedById], references: [id])
   employee         Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   tenant           Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)

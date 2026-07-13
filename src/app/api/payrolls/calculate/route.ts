@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       where: {
         tenantId,
         employeeId,
-        status: { in: ["APPROVED"] },
+        status: { in: ["APPROVED", "PARTIALLY_PAID"] },
       },
     });
     let loansDeduction = activeLoans.reduce((acc, curr) => acc + Number(curr.monthlyDeduction || 0), 0);

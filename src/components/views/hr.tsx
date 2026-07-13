@@ -20,7 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Plus, Trash2, Edit2, AlertCircle, Clock, DollarSign, FileText, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Download, Check, X } from "lucide-react";
+import { Users, Plus, Trash2, Edit2, AlertCircle, Clock, DollarSign, FileText, Printer, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Download, Check, X } from "lucide-react";
 import { currency, dateTimeShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -557,28 +557,73 @@ function LoanDialog({ open, onOpenChange, loan, employees, onSave, isLoading }: 
 function PayrollView({ employees, payrolls, setEditingPayroll, handleDeletePayroll }: any) {
   const calculatePayroll = useCalculatePayroll();
   const exportPayrolls = useExportPayrolls();
+  const payPayroll = usePayPayroll();
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [penaltiesWaived, setPenaltiesWaived] = useState(false);
+
+  const payrollsByEmployee = new Map<string, any>();
+  payrolls
+    .filter((p: any) => p.payPeriodStart.startsWith(selectedMonth))
+    .forEach((p: any) => payrollsByEmployee.set(p.employeeId, p));
 
   const handleCalculate = async () => {
     const startDate = new Date(`${selectedMonth}-01`);
     const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-    
+
     for (const emp of employees) {
       await calculatePayroll.mutateAsync({
         employeeId: emp.id,
         payPeriodStart: startDate.toISOString(),
         payPeriodEnd: endDate.toISOString(),
-        penaltiesWaived
+        penaltiesWaived,
       });
     }
   };
 
-  const handleExportAll = async () => {
-    const res = await exportPayrolls.mutateAsync({
-      payrollIds: payrolls.map((p: any) => p.id),
-      format: 'pdf'
+  const handleCalculateOne = async (employeeId: string) => {
+    const startDate = new Date(`${selectedMonth}-01`);
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    await calculatePayroll.mutateAsync({
+      employeeId,
+      payPeriodStart: startDate.toISOString(),
+      payPeriodEnd: endDate.toISOString(),
+      penaltiesWaived,
     });
+  };
+
+  const handlePayAll = async () => {
+    const payrollsToPay = payrolls.filter(
+      (p: any) => p.payPeriodStart.startsWith(selectedMonth) && p.status !== "PAID" && p.status !== "CANCELLED"
+    );
+    if (payrollsToPay.length === 0) {
+      toast.error("Aucune fiche de paie valide à payer pour ce mois.");
+      return;
+    }
+
+    for (const payroll of payrollsToPay) {
+      try {
+        await payPayroll.mutateAsync({ payrollId: payroll.id });
+      } catch {
+        // continue to attempt remaining payments
+      }
+    }
+  };
+
+  const handlePayOne = async (payrollId?: string) => {
+    if (!payrollId) return;
+    await payPayroll.mutateAsync({ payrollId });
+  };
+
+  const handlePrintAll = async () => {
+    const payrollIds = payrolls
+      .filter((p: any) => p.payPeriodStart.startsWith(selectedMonth))
+      .map((p: any) => p.id);
+    if (payrollIds.length === 0) {
+      toast.error("Aucune fiche de paie à imprimer pour ce mois.");
+      return;
+    }
+
+    const res = await exportPayrolls.mutateAsync({ payrollIds, format: "pdf" });
     if (res.content) {
       const win = window.open("", "_blank");
       win?.document.write(res.content);
@@ -587,11 +632,9 @@ function PayrollView({ employees, payrolls, setEditingPayroll, handleDeletePayro
     }
   };
 
-  const handleExportOne = async (id: string) => {
-    const res = await exportPayrolls.mutateAsync({
-      payrollIds: [id],
-      format: 'pdf'
-    });
+  const handlePrintOne = async (payrollId?: string) => {
+    if (!payrollId) return;
+    const res = await exportPayrolls.mutateAsync({ payrollIds: [payrollId], format: "pdf" });
     if (res.content) {
       const win = window.open("", "_blank");
       win?.document.write(res.content);
@@ -599,54 +642,110 @@ function PayrollView({ employees, payrolls, setEditingPayroll, handleDeletePayro
       win?.print();
     }
   };
+
+  const isAnyActionPending = calculatePayroll.isPending || payPayroll.isPending || exportPayrolls.isPending;
 
   return (
     <div className="space-y-4">
-      <Card><CardContent className="p-4 flex flex-col sm:flex-row items-end gap-4">
-        <div className="space-y-2 flex-1">
-          <Label>Mois de paie</Label>
-          <Input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
-        </div>
-        <div className="flex items-center gap-2 mb-2">
-          <input type="checkbox" id="waive" checked={penaltiesWaived} onChange={(e) => setPenaltiesWaived(e.target.checked)} />
-          <Label htmlFor="waive" className="cursor-pointer">Pardonner les pénalités</Label>
-        </div>
-        <Button onClick={handleCalculate} disabled={calculatePayroll.isPending} className="w-full sm:w-auto">
-          {calculatePayroll.isPending ? "Calcul..." : "Calculer Tout"}
-        </Button>
-        <Button variant="outline" onClick={handleExportAll} className="w-full sm:w-auto">
-          <Download className="h-4 w-4 mr-2" /> État Global
-        </Button>
-      </CardContent></Card>
+      <Card>
+        <CardContent className="p-4 grid gap-4 xl:grid-cols-[1.5fr_1fr] xl:items-end">
+          <div className="space-y-2">
+            <Label>Mois de paie</Label>
+            <Input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="waive" checked={penaltiesWaived} onChange={(e) => setPenaltiesWaived(e.target.checked)} />
+              <Label htmlFor="waive" className="cursor-pointer">Pardonner les pénalités</Label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Button onClick={handleCalculate} disabled={calculatePayroll.isPending || isAnyActionPending}>
+                {calculatePayroll.isPending ? "Calcul..." : "Tout calculer"}
+              </Button>
+              <Button variant="outline" onClick={handlePayAll} disabled={payPayroll.isPending || isAnyActionPending}>
+                <DollarSign className="h-4 w-4 mr-2" /> Tout payer
+              </Button>
+              <Button variant="outline" onClick={handlePrintAll} disabled={exportPayrolls.isPending || isAnyActionPending}>
+                <Printer className="h-4 w-4 mr-2" /> Tout imprimer
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Card><CardContent className="p-4">
-        <div className="rounded-md border overflow-hidden">
-          <Table>
-            <TableHeader><TableRow>
-              <TableHead>Employé</TableHead>
-              <TableHead>Brut</TableHead>
-              <TableHead>Déductions</TableHead>
-              <TableHead>Net</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {payrolls.filter((p: any) => p.payPeriodStart.startsWith(selectedMonth)).map((p: any) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{p.employee.firstName} {p.employee.lastName}</TableCell>
-                  <TableCell>{currency(p.grossSalary)}</TableCell>
-                  <TableCell className="text-red-600">-{currency(Number(p.absencesDeduction) + Number(p.delaysDeduction) + Number(p.loansDeduction))}</TableCell>
-                  <TableCell className="font-bold text-green-700">{currency(p.netSalary)}</TableCell>
-                  <TableCell className="text-right"><div className="flex justify-end gap-1">
-                    <Button size="sm" variant="outline" onClick={() => handleExportOne(p.id)} title="Imprimer Fiche"><FileText className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingPayroll(p)}><Edit2 className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDeletePayroll(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                  </div></TableCell>
+      <Card>
+        <CardContent className="p-4">
+          <div className="rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employé</TableHead>
+                  <TableHead className="hidden sm:table-cell">Fonction</TableHead>
+                  <TableHead className="hidden lg:table-cell">Département</TableHead>
+                  <TableHead>Salaire de base</TableHead>
+                  <TableHead>Déductions</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Net</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent></Card>
+              </TableHeader>
+              <TableBody>
+                {employees.map((employee: any) => {
+                  const payroll = payrollsByEmployee.get(employee.id);
+                  const deductions = payroll
+                    ? Number(payroll.absencesDeduction || 0) + Number(payroll.delaysDeduction || 0) + Number(payroll.loansDeduction || 0)
+                    : 0;
+                  return (
+                    <TableRow key={employee.id}>
+                      <TableCell className="font-medium">{employee.firstName} {employee.lastName}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{employee.jobTitle || "-"}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{employee.department || "-"}</TableCell>
+                      <TableCell>{currency(employee.baseSalary)}</TableCell>
+                      <TableCell>{payroll ? `-${currency(deductions)}` : "-"}</TableCell>
+                      <TableCell>{payroll ? payroll.status : "Aucun"}</TableCell>
+                      <TableCell className="font-bold text-green-700">{payroll ? currency(payroll.netSalary) : "-"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleCalculateOne(employee.id)}
+                            disabled={isAnyActionPending}
+                            title="Calculer la paie"
+                          >
+                            <Check className="h-3.5 w-3.5 mr-2" />
+                            Calculer
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handlePayOne(payroll?.id)}
+                            disabled={!payroll || payroll.status === "PAID" || isAnyActionPending}
+                            title="Payer"
+                          >
+                            <DollarSign className="h-3.5 w-3.5 mr-2" />
+                            Payer
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handlePrintOne(payroll?.id)}
+                            disabled={!payroll || isAnyActionPending}
+                            title="Imprimer fiche de paie"
+                          >
+                            <Printer className="h-3.5 w-3.5 mr-2" />
+                            Imprimer
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

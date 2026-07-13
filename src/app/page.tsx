@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Wallet, ShoppingCart, Package, FileText, Users2, Calculator,
   Zap, ShieldCheck, Sparkles, Smartphone, ArrowRight, CheckCircle2, TrendingUp,
+  BarChart3, Cpu, Globe2, UserRound,
 } from "lucide-react";
 
 const FEATURES = [
@@ -22,6 +23,18 @@ const BENEFITS = [
   "Paiement mobile Wave intégré, pensé pour le Sénégal",
   "Facturation, stock et caisse synchronisés automatiquement",
   "Accessible sur mobile, tablette et ordinateur",
+];
+
+const HIGHLIGHTS = [
+  { value: "24/7", label: "Pilotage en temps réel" },
+  { value: "98%", label: "Données synchronisées" },
+  { value: "+40%", label: "Gain de temps mensuel" },
+];
+
+const WORKFLOW = [
+  { title: "Centraliser", desc: "Toutes vos opérations entrent dans un tableau de bord unique et lisible." },
+  { title: "Automatiser", desc: "L’IA compose documents, clients et suivis sans friction." },
+  { title: "Piloter", desc: "Chaque décision s’appuie sur des indicateurs fiables et instantanés." },
 ];
 
 export default function LandingPage() {
@@ -47,28 +60,35 @@ export default function LandingPage() {
           </div>
         </header>
 
-      <section className="relative px-6 py-24 sm:py-28 lg:py-32">
+      <section className="relative overflow-hidden px-6 py-24 sm:py-28 lg:py-32">
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-80"
+          className="absolute inset-0 bg-cover bg-center opacity-90"
           style={{
             backgroundImage:
-              "linear-gradient(120deg, rgba(3, 19, 30, 0.94) 0%, rgba(12, 72, 58, 0.78) 48%, rgba(5, 36, 31, 0.95) 100%), url('https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1800&q=80')",
+              "linear-gradient(125deg, rgba(2, 12, 24, 0.97) 0%, rgba(7, 48, 39, 0.9) 42%, rgba(10, 55, 47, 0.95) 100%), url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1800&q=80')",
           }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,147,63,0.2),transparent_35%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,147,63,0.22),transparent_35%),radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.14),transparent_24%),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100%_100%,100%_100%,40px_40px,40px_40px]" />
+        <div className="premium-grid absolute inset-0 opacity-25" />
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-2xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/80 px-3 py-1.5 text-sm font-medium text-emerald-700 shadow-sm backdrop-blur">
-              <Zap className="h-3.5 w-3.5" /> Conçu pour les PME sénégalaises
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.08fr_0.92fr]">
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-3xl">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/85 px-3 py-1.5 text-sm font-medium text-emerald-700 shadow-sm backdrop-blur">
+              <Zap className="h-3.5 w-3.5" /> L’outil de gestion premium des entreprises qui veulent aller plus loin
             </div>
             <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
-              La gestion d'entreprise, <span className="text-emerald-300">unifiée</span> et simplifiée.
+              Faites de votre gestion un <span className="text-emerald-300">levier de croissance</span>.
             </h1>
-            <p className="mt-6 text-lg leading-8 text-slate-200 sm:text-xl">
-              Finora centralise votre comptabilité, vos ventes, vos stocks, votre trésorerie et vos
-              ressources humaines dans une seule expérience fluide, sécurisée et pensée pour le Sénégal.
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200 sm:text-xl">
+              Finora réunit comptabilité, ventes, stock, trésorerie et RH dans une expérience fluide,
+              claire et pensée pour les PME sénégalaises qui veulent gagner en vitesse, en précision et en élégance.
             </p>
+            <div className="mt-8 rounded-2xl border border-white/15 bg-white/10 p-4 shadow-lg backdrop-blur">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-200">
+                <span className="rounded-full bg-emerald-400/15 px-3 py-1">⚡ Créez un devis en moins de 45 secondes</span>
+                <span className="rounded-full bg-white/10 px-3 py-1">📱 Interface pensée mobile</span>
+              </div>
+            </div>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/connexion">
                 <Button size="lg" className="w-full gap-2 bg-[#0d5d4a] text-white hover:bg-[#0a4a3b] sm:w-auto">
@@ -77,7 +97,7 @@ export default function LandingPage() {
               </Link>
               <Link href="/connexion">
                 <Button size="lg" variant="outline" className="w-full border-white/30 bg-white/10 text-white hover:bg-white/20 sm:w-auto">
-                  J'ai déjà un compte
+                  Voir la plateforme
                 </Button>
               </Link>
             </div>
@@ -86,44 +106,66 @@ export default function LandingPage() {
               <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> Mobile-first</span>
               <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> Automatisations IA</span>
             </div>
+            <div className="mt-10 grid gap-3 sm:grid-cols-3">
+              {HIGHLIGHTS.map((item) => (
+                <div key={item.label} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+                  <p className="text-2xl font-semibold text-white">{item.value}</p>
+                  <p className="mt-1 text-sm text-slate-300">{item.label}</p>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.1 }} className="relative">
-            <div className="absolute inset-0 rounded-4xl bg-linear-to-br from-emerald-400/30 to-transparent blur-3xl" />
-            <div className="relative rounded-4xl border border-white/20 bg-slate-950/80 p-4 shadow-[0_30px_100px_rgba(2,13,28,0.35)] backdrop-blur-xl">
-              <div className="rounded-[1.4rem] border border-white/10 bg-white/10 p-5">
+            <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-emerald-400/25 via-transparent to-[#c8933f]/20 blur-3xl" />
+            <div className="relative rounded-[2rem] border border-white/20 bg-slate-950/80 p-4 shadow-[0_30px_120px_rgba(2,13,28,0.45)] backdrop-blur-xl">
+              <div className="rounded-[1.45rem] border border-white/10 bg-white/10 p-5">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-300">Tableau de bord</p>
-                    <p className="text-lg font-semibold text-white">Vision en temps réel</p>
+                    <p className="text-sm text-slate-300">Command center</p>
+                    <p className="text-lg font-semibold text-white">Pilotage intelligent</p>
                   </div>
                   <div className="rounded-full bg-emerald-500/20 px-3 py-1 text-sm font-medium text-emerald-300">Live</div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20">
-                      <FileText className="h-5 w-5 text-emerald-300" />
+                <div className="rounded-[1.35rem] border border-emerald-400/20 bg-gradient-to-br from-emerald-500/10 to-white/5 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-slate-300">Performance du mois</p>
+                      <p className="text-3xl font-semibold text-white">+18,4%</p>
                     </div>
-                    <p className="text-sm font-semibold text-white">Devis & factures</p>
-                    <p className="mt-1 text-sm text-slate-300">Génération instantanée</p>
+                    <div className="rounded-full bg-white/10 px-3 py-1 text-sm text-emerald-200">Croissance stable</div>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#c8933f]/20">
-                      <TrendingUp className="h-5 w-5 text-[#f4c46d]" />
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20">
+                        <FileText className="h-5 w-5 text-emerald-300" />
+                      </div>
+                      <p className="text-sm font-semibold text-white">Devis & factures</p>
+                      <p className="mt-1 text-sm text-slate-300">Génération instantanée</p>
                     </div>
-                    <p className="text-sm font-semibold text-white">Caisse & trésorerie</p>
-                    <p className="mt-1 text-sm text-slate-300">Suivi précis</p>
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#c8933f]/20">
+                        <TrendingUp className="h-5 w-5 text-[#f4c46d]" />
+                      </div>
+                      <p className="text-sm font-semibold text-white">Caisse & trésorerie</p>
+                      <p className="mt-1 text-sm text-slate-300">Suivi précis</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-300">Tendance du mois</p>
-                      <p className="text-xl font-semibold text-white">+18,4%</p>
-                    </div>
-                    <div className="rounded-full bg-white/10 px-3 py-1 text-sm text-emerald-200">Croissance stable</div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-center">
+                    <Cpu className="mx-auto h-5 w-5 text-emerald-300" />
+                    <p className="mt-2 text-xs text-slate-300">Automatisation</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-center">
+                    <Globe2 className="mx-auto h-5 w-5 text-emerald-300" />
+                    <p className="mt-2 text-xs text-slate-300">Accessible</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-center">
+                    <BarChart3 className="mx-auto h-5 w-5 text-emerald-300" />
+                    <p className="mt-2 text-xs text-slate-300">Analytics</p>
                   </div>
                 </div>
               </div>
@@ -157,6 +199,141 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-7xl px-6 pb-20">
+        <div className="grid gap-8 rounded-[2rem] border border-emerald-100/80 bg-gradient-to-br from-white via-emerald-50/50 to-white p-8 shadow-[0_20px_90px_rgba(13,93,74,0.08)] lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700">
+              <Sparkles className="h-3.5 w-3.5" /> Rythme premium
+            </div>
+            <h2 className="text-3xl font-bold text-[#0d1b3d] sm:text-4xl">Une expérience pensée pour les équipes qui veulent aller vite</h2>
+            <p className="max-w-2xl text-lg text-muted-foreground">Finora simplifie la complexité du quotidien afin que chaque membre de l’entreprise puisse agir avec clarté, rapidité et confiance.</p>
+            <div className="space-y-3">
+              {WORKFLOW.map((step, index) => (
+                <div key={step.title} className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-white/80 p-4 shadow-sm">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0d5d4a] text-sm font-semibold text-white">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#0d1b3d]">{step.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative min-h-[320px]">
+            <div className="premium-panel absolute inset-0 rounded-[1.8rem] bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.15),transparent_45%)]" />
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.45 }}
+              className="relative h-full rounded-[1.8rem] border border-white/70 bg-slate-950/90 p-6 text-white shadow-[0_24px_80px_rgba(2,13,28,0.35)]"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-300">Vue d’ensemble</p>
+                  <p className="text-lg font-semibold">Pilotage instantané</p>
+                </div>
+                <div className="rounded-full bg-emerald-500/20 px-3 py-1 text-sm font-medium text-emerald-200">Live</div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                  <p className="text-sm text-slate-300">Cette semaine</p>
+                  <p className="mt-2 text-2xl font-semibold">1 248</p>
+                  <p className="mt-1 text-sm text-emerald-300">opérations traitées</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                  <p className="text-sm text-slate-300">Taux de conformité</p>
+                  <p className="mt-2 text-2xl font-semibold">99,2%</p>
+                  <p className="mt-1 text-sm text-[#f4c46d]">Documents validés</p>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-white/10 p-4">
+                <div className="flex items-center justify-between text-sm text-slate-300">
+                  <span>Automatisation IA</span>
+                  <span className="text-emerald-300">Actif</span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full w-[82%] rounded-full bg-gradient-to-r from-emerald-400 to-[#c8933f]" />
+                </div>
+                <p className="mt-3 text-sm text-slate-300">Les documents, alertes et suivis sont générés sans friction.</p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pb-20">
+        <div className="grid gap-8 rounded-[2rem] border border-emerald-100/80 bg-gradient-to-br from-white via-emerald-50/70 to-white p-8 shadow-[0_20px_90px_rgba(13,93,74,0.08)] lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700">
+              <Sparkles className="h-3.5 w-3.5" /> Démo produit
+            </div>
+            <h2 className="text-3xl font-bold text-[#0d1b3d] sm:text-4xl">Une expérience de gestion qui transforme le quotidien</h2>
+            <p className="max-w-2xl text-lg text-muted-foreground">Chaque étape du processus métier devient plus fluide, plus claire et plus rapide à exécuter pour votre équipe.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                { title: "Créer un devis", desc: "Génération instantanée en quelques clics" },
+                { title: "Valider une facture", desc: "Suivi comptable et trésorerie en temps réel" },
+                { title: "Suivre un stock", desc: "Alertes et mouvements centralisés" },
+                { title: "Piloter la paie", desc: "Absences, pointages et salaires automatisés" },
+              ].map((item) => (
+                <div key={item.title} className="rounded-2xl border border-emerald-100 bg-white/80 p-4 shadow-sm">
+                  <h3 className="font-semibold text-[#0d1b3d]">{item.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.45 }}
+            className="relative"
+          >
+            <div className="absolute inset-0 rounded-[1.8rem] bg-gradient-to-br from-emerald-400/20 via-transparent to-[#c8933f]/20 blur-3xl" />
+            <div className="relative rounded-[1.8rem] border border-white/70 bg-slate-950/95 p-5 text-white shadow-[0_24px_80px_rgba(2,13,28,0.35)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-300">Finora Studio</p>
+                  <p className="text-lg font-semibold">Tableau de bord live</p>
+                </div>
+                <div className="rounded-full bg-emerald-500/20 px-3 py-1 text-sm font-medium text-emerald-200">En direct</div>
+              </div>
+
+              <div className="mt-5 rounded-[1.25rem] border border-white/10 bg-white/10 p-4">
+                <div className="flex items-center justify-between text-sm text-slate-300">
+                  <span>Activité du jour</span>
+                  <span className="text-emerald-300">+12%</span>
+                </div>
+                <div className="mt-3 flex items-end gap-2">
+                  {[42, 64, 54, 78, 90, 88].map((height, index) => (
+                    <div key={index} className="flex-1 rounded-t-full bg-gradient-to-t from-emerald-500 to-[#c8933f]" style={{ height: `${height}px` }} />
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                  <p className="text-sm text-slate-300">Devis créés</p>
+                  <p className="mt-2 text-2xl font-semibold">128</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                  <p className="text-sm text-slate-300">Paiements suivis</p>
+                  <p className="mt-2 text-2xl font-semibold">94%</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       <section className="relative overflow-hidden bg-[#072d24] text-white">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-20" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-6 py-20 lg:grid-cols-2">
@@ -180,6 +357,35 @@ export default function LandingPage() {
               <Smartphone className="mx-auto h-8 w-8 text-[#c8933f]" />
               <p className="mt-3 text-sm font-medium">Fonctionne sur mobile, tablette et ordinateur</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pb-8 pt-4">
+        <div className="rounded-[2rem] border border-emerald-100 bg-white/80 p-8 shadow-[0_20px_80px_rgba(13,93,74,0.06)]">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-bold text-[#0d1b3d]">Des entrepreneurs sénégalais qui s’y retrouvent</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">Des profils concrets, sans photo, juste des icônes et des noms pour garder une identité simple et élégante.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              { name: "Mame Diarra", role: "Gérante de boutique", quote: "Finora m’aide à suivre mes ventes et mes stocks sans perdre de temps." },
+              { name: "Ibrahima Sarr", role: "Responsable logistique", quote: "Je pilote mes bons de commande et mes livraisons depuis un seul espace clair." },
+              { name: "Awa Ndiaye", role: "Directrice de société", quote: "La compta et la trésorerie sont enfin synchronisées et faciles à lire." },
+            ].map((person) => (
+              <div key={person.name} className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#0d5d4a] shadow-sm">
+                    <UserRound className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#0d1b3d]">{person.name}</p>
+                    <p className="text-sm text-muted-foreground">{person.role}</p>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm leading-6 text-muted-foreground">“{person.quote}”</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

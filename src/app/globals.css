@@ -246,3 +246,21 @@
     transform: translateX(calc(-50% - 1.5rem));
   }
 }
+
+.hero-orb {
+  animation: float-slow 8s ease-in-out infinite;
+}
+
+.hero-orb-delay {
+  animation-delay: 1.5s;
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, 20px, 0) scale(1.04);
+  }
+}

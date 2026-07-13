@@ -365,7 +365,7 @@ export default function LandingPage() {
         <div className="rounded-[2rem] border border-emerald-100 bg-white/80 p-8 shadow-[0_20px_80px_rgba(13,93,74,0.06)]">
           <div className="mb-8 text-center">
             <h2 className="text-3xl font-bold text-[#0d1b3d]">Des entrepreneurs sénégalais qui s’y retrouvent</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">Des profils concrets, sans photo, juste des icônes et des noms pour garder une identité simple et élégante.</p>
+            <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">Parce que la meilleure preuve de notre engagement reste l’expérience de nos clients, nous sommes fiers de partager leurs retours.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {[

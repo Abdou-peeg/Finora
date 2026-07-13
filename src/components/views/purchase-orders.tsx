@@ -35,6 +35,7 @@ export function PurchaseOrdersView() {
   const [details, setDetails] = useState<any>(null);
 
   const [supplierId, setSupplierId] = useState("");
+  const [supplierName, setSupplierName] = useState("");
   const [lines, setLines] = useState<LineItem[]>([{ productId: "", qty: 1, unitPrice: 0 }]);
   const [notes, setNotes] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
@@ -71,10 +72,11 @@ export function PurchaseOrdersView() {
   }
 
   async function submit() {
-    if (!supplierId) { toast.error("Sélectionnez un fournisseur"); return; }
+    if (!supplierId && !supplierName.trim()) { toast.error("Sélectionnez un fournisseur ou saisissez son nom"); return; }
     if (lines.length === 0 || lines.some((l) => !l.productId)) { toast.error("Ajoutez au moins une ligne valide"); return; }
     await createM.mutateAsync({
-      supplierId,
+      supplierId: supplierId || undefined,
+      supplierName: supplierName.trim() || undefined,
       items: lines.map((l) => {
         const p = products.find((p) => p.id === l.productId)!;
         return { productId: l.productId, qty: l.qty, unitPrice: l.unitPrice, taxRate: l.taxRate ?? Number(p.taxRate) };
@@ -84,6 +86,7 @@ export function PurchaseOrdersView() {
     });
     setOpen(false);
     setSupplierId("");
+    setSupplierName("");
     setLines([{ productId: products[0]?.id || "", qty: 1, unitPrice: products[0] ? Number(products[0].costPrice) : 0 }]);
     setNotes("");
     setExpectedDate("");
@@ -123,13 +126,18 @@ export function PurchaseOrdersView() {
             <div className="space-y-4 py-2">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Fournisseur *</Label>
-                  <Select value={supplierId} onValueChange={setSupplierId}>
+                  <Label>Fournisseur</Label>
+                  <Select value={supplierId} onValueChange={(value) => { setSupplierId(value); if (value) setSupplierName(""); }}>
                     <SelectTrigger><SelectValue placeholder="Sélectionner un fournisseur" /></SelectTrigger>
                     <SelectContent>
                       {suppliers.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.code} — {s.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">Ou saisissez un nom si le fournisseur n'est pas encore créé.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Nom du fournisseur</Label>
+                  <Input value={supplierName} onChange={(e) => { setSupplierName(e.target.value); if (e.target.value) setSupplierId(""); }} placeholder="Nom si non enregistré" />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Livraison prévue</Label>

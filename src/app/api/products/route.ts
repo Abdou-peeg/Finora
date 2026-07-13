@@ -29,11 +29,17 @@ export async function POST(req: Request) {
   if (g instanceof NextResponse) return g;
   const { tenantId } = g.user;
   const body = await req.json();
+
+  async function generateSku() {
+    const count = await db.product.count({ where: { tenantId } });
+    return `SKU-${String(count + 1).padStart(4, "0")}`;
+  }
+
   try {
     const created = await db.product.create({
   data: {
     tenantId,
-    sku: body.sku,
+    sku: body.sku?.trim() || await generateSku(),
     name: body.name,
     description: body.description || null,
     imageUrl: body.imageUrl || null,

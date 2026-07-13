@@ -32,11 +32,38 @@ export async function POST(req: Request) {
   if (g instanceof NextResponse) return g;
   const { tenantId } = g.user;
   const body = await req.json();
-  if (!body.customerId || !Array.isArray(body.items) || body.items.length === 0) {
-    return NextResponse.json({ error: "Client et lignes requis" }, { status: 400 });
+  if ((!body.customerId || !body.customerId.trim()) && (!body.customerName || !body.customerName.trim())) {
+    return NextResponse.json({ error: "Client ou nom du client requis" }, { status: 400 });
   }
-  const customer = await db.customer.findFirst({ where: { id: body.customerId, tenantId } });
-  if (!customer) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
+  if (!Array.isArray(body.items) || body.items.length === 0) {
+    return NextResponse.json({ error: "Lignes de devis requises" }, { status: 400 });
+  }
+
+  let customer = null;
+  if (body.customerId) {
+    customer = await db.customer.findFirst({ where: { id: body.customerId, tenantId } });
+    if (!customer) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
+  } else {
+    const count = await db.customer.count({ where: { tenantId } });
+    customer = await db.customer.create({
+      data: {
+        tenantId,
+        code: `C-${String(count + 1).padStart(3, "0")}`,
+        name: body.customerName.trim(),
+      },
+    });
+    await db.auditLog.create({
+      data: {
+        tenantId,
+        userId: g.user.id,
+        userName: g.user.name,
+        action: "CREATE",
+        entity: "Customer",
+        entityId: customer.id,
+        details: `Client ${customer.code} - ${customer.name} créé automatiquement pour le devis.`,
+      },
+    });
+  }
 
   let subtotal = 0;
   let taxTotal = 0;

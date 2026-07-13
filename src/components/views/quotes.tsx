@@ -36,6 +36,7 @@ export function QuotesView() {
   const [details, setDetails] = useState<any>(null);
 
   const [customerId, setCustomerId] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [lines, setLines] = useState<LineItem[]>([{ productId: "", qty: 1 }]);
   const [notes, setNotes] = useState("");
   const [validUntil, setValidUntil] = useState("");
@@ -71,10 +72,11 @@ export function QuotesView() {
   }
 
   async function submit() {
-    if (!customerId) { toast.error("Sélectionnez un client"); return; }
+    if (!customerId && !customerName.trim()) { toast.error("Sélectionnez un client ou saisissez son nom"); return; }
     if (lines.length === 0 || lines.some((l) => !l.productId)) { toast.error("Ajoutez au moins une ligne valide"); return; }
     await createM.mutateAsync({
-      customerId,
+      customerId: customerId || undefined,
+      customerName: customerName.trim() || undefined,
       items: lines.map((l) => {
         const p = products.find((p) => p.id === l.productId)!;
         return { productId: l.productId, qty: l.qty, unitPrice: l.unitPrice ?? Number(p.salePrice), taxRate: l.taxRate ?? Number(p.taxRate) };
@@ -84,6 +86,7 @@ export function QuotesView() {
     });
     setOpen(false);
     setCustomerId("");
+    setCustomerName("");
     setLines([{ productId: products[0]?.id || "", qty: 1 }]);
     setNotes("");
     setValidUntil("");
@@ -127,13 +130,18 @@ export function QuotesView() {
             <div className="space-y-4 py-2">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Client *</Label>
-                  <Select value={customerId} onValueChange={setCustomerId}>
+                  <Label>Client</Label>
+                  <Select value={customerId} onValueChange={(value) => { setCustomerId(value); if (value) setCustomerName(""); }}>
                     <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                     <SelectContent>
                       {customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.code} — {c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">Vous pouvez sélectionner un client existant ou saisir un nom pour un nouveau client.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Nom du client</Label>
+                  <Input value={customerName} onChange={(e) => { setCustomerName(e.target.value); if (e.target.value) setCustomerId(""); }} placeholder="Nom si non enregistré" />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Valide jusqu'au</Label>

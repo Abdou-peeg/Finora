@@ -32,11 +32,38 @@ export async function POST(req: Request) {
   if (g instanceof NextResponse) return g;
   const { tenantId } = g.user;
   const body = await req.json();
-  if (!body.supplierId || !Array.isArray(body.items) || body.items.length === 0) {
-    return NextResponse.json({ error: "Fournisseur et lignes requis" }, { status: 400 });
+  if ((!body.supplierId || !body.supplierId.trim()) && (!body.supplierName || !body.supplierName.trim())) {
+    return NextResponse.json({ error: "Fournisseur ou nom du fournisseur requis" }, { status: 400 });
   }
-  const supplier = await db.supplier.findFirst({ where: { id: body.supplierId, tenantId } });
-  if (!supplier) return NextResponse.json({ error: "Fournisseur introuvable" }, { status: 404 });
+  if (!Array.isArray(body.items) || body.items.length === 0) {
+    return NextResponse.json({ error: "Lignes de commande requises" }, { status: 400 });
+  }
+
+  let supplier = null;
+  if (body.supplierId) {
+    supplier = await db.supplier.findFirst({ where: { id: body.supplierId, tenantId } });
+    if (!supplier) return NextResponse.json({ error: "Fournisseur introuvable" }, { status: 404 });
+  } else {
+    const count = await db.supplier.count({ where: { tenantId } });
+    supplier = await db.supplier.create({
+      data: {
+        tenantId,
+        code: `F-${String(count + 1).padStart(3, "0")}`,
+        name: body.supplierName.trim(),
+      },
+    });
+    await db.auditLog.create({
+      data: {
+        tenantId,
+        userId: g.user.id,
+        userName: g.user.name,
+        action: "CREATE",
+        entity: "Supplier",
+        entityId: supplier.id,
+        details: `Fournisseur ${supplier.code} - ${supplier.name} créé automatiquement pour le bon de commande.`,
+      },
+    });
+  }
 
   let subtotal = 0, taxTotal = 0;
   const lineItems: any[] = [];

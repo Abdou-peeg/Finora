@@ -24,8 +24,9 @@ const API = (path: string, init?: RequestInit) =>
 // ─────────────────────────────────────────────────────────────────────────────
 // Generic helpers
 // ─────────────────────────────────────────────────────────────────────────────
-export function useList<T = any>(key: string, params?: Record<string, any>) {
-  const searchParams = new URLSearchParams(params).toString();
+export function useList<T = any>(key: string, params?: Record<string, any> | string) {
+  const queryParams = typeof params === "string" ? { search: params } : params || {};
+  const searchParams = new URLSearchParams(queryParams).toString();
   return useQuery({
     queryKey: [key, params],
     queryFn: () => API(`/api/${key}?${searchParams}`),

@@ -459,8 +459,8 @@ export async function generateInvoiceFromSale(saleId: string, user: any) {
       subtotal: saleSubtotal,
       taxTotal: saleTaxTotal,
       total: saleTotal,
-      paidAmount: 0, 
-      status: "UNPAID",
+      paidAmount: saleTotal, // Encaissement déjà comptabilisé lors de la confirmation de la vente
+      status: "PAID",
     },
   });
 

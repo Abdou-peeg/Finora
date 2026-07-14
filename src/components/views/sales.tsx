@@ -27,6 +27,7 @@ export function SalesView() {
 
   // Sale form state
   const [customerId, setCustomerId] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [lines, setLines] = useState<LineItem[]>([]);
   const [notes, setNotes] = useState("");
   const [autoConfirm, setAutoConfirm] = useState(true);
@@ -64,11 +65,11 @@ export function SalesView() {
   }
 
   async function submit() {
-    if (!customerId) { toast.error("Sélectionnez un client"); return; }
+    if (!customerId && !customerName.trim()) { toast.error("Sélectionnez un client ou saisissez son nom"); return; }
     if (lines.length === 0) { toast.error("Ajoutez au moins une ligne"); return; }
-    const t = totals();
     await createM.mutateAsync({
-      customerId,
+      customerId: customerId || undefined,
+      customerName: customerName.trim() || undefined,
       items: lines.map((l) => {
         const p = products.find((p) => p.id === l.productId)!;
         return { productId: l.productId, qty: l.qty, unitPrice: l.unitPrice ?? p.salePrice, taxRate: l.taxRate ?? p.taxRate };
@@ -78,6 +79,7 @@ export function SalesView() {
     });
     setOpen(false);
     setCustomerId("");
+    setCustomerName("");
     setLines([]);
     setNotes("");
     refetch();
@@ -115,13 +117,18 @@ export function SalesView() {
             <div className="space-y-4 py-2">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Client *</Label>
-                  <Select value={customerId} onValueChange={setCustomerId}>
+                  <Label>Client</Label>
+                  <Select value={customerId} onValueChange={(value) => { setCustomerId(value); if (value) setCustomerName(""); }}>
                     <SelectTrigger><SelectValue placeholder="Sélectionner un client" /></SelectTrigger>
                     <SelectContent>
                       {customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.code} — {c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">Vous pouvez aussi saisir un nom si le client n'est pas encore enregistré.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Nom du client</Label>
+                  <Input value={customerName} onChange={(e) => { setCustomerName(e.target.value); if (e.target.value) setCustomerId(""); }} placeholder="Nom si non enregistré" />
                 </div>
                 <div className="flex items-end">
                   <label className="flex items-center gap-2 text-sm">

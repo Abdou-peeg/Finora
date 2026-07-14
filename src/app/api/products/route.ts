@@ -31,8 +31,13 @@ export async function POST(req: Request) {
   const body = await req.json();
 
   async function generateSku() {
-    const count = await db.product.count({ where: { tenantId } });
-    return `SKU-${String(count + 1).padStart(4, "0")}`;
+    const prefix = "SKU";
+    const randomPart = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const timestampPart = Date.now().toString(36).toUpperCase();
+    const candidate = `${prefix}-${timestampPart}-${randomPart}`;
+    const existing = await db.product.findFirst({ where: { tenantId, sku: candidate } });
+    if (!existing) return candidate;
+    return generateSku();
   }
 
   try {

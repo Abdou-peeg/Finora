@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     content,
   });
 
-  return new NextResponse(pdf, {
+  return new NextResponse(pdf.buffer.slice(pdf.byteOffset, pdf.byteOffset + pdf.byteLength) as ArrayBuffer, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="finora-ai-analyse.pdf"`,

@@ -34,6 +34,7 @@ const NAV_GROUPS = [
   {
     label: "Commercial",
     items: [
+      { id: "pos", label: "Caisse tactile", icon: ShoppingCart, perm: "ventes:view" },
       { id: "ventes", label: "Ventes", icon: ShoppingCart, perm: "ventes:view" },
       { id: "devis", label: "Devis", icon: FileText, perm: "devis:view" },
       { id: "factures", label: "Facturation", icon: FileText, perm: "facturation:view" },

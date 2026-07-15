@@ -10,6 +10,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { safeError } from "@/lib/errors";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 
 const SignupSchema = z.object({
   companyName: z.string().min(2, "Nom de l'entreprise requis (min 2 caractères)"),
@@ -22,7 +23,7 @@ const SignupSchema = z.object({
 });
 
 // Default chart of accounts (PCG OHADA — système comptable OHADA adopted in Senegal)
-const DEFAULT_ACCOUNTS = [
+const DEFAULT_ACCOUNTS: Omit<Prisma.AccountCreateManyInput, "tenantId">[] = [
   { code: "411000", label: "Clients", type: "ASSET" },
   { code: "401000", label: "Fournisseurs", type: "LIABILITY" },
   { code: "701000", label: "Ventes de marchandises", type: "REVENUE" },

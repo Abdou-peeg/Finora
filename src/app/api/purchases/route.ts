@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { safeError } from "@/lib/errors";
 import { confirmPurchase, nextReference } from "@/lib/transactions";
 import { notify } from "@/lib/realtime-server";
+import type { Supplier } from "@prisma/client";
 
 function round2(v: number) {
   return Math.round((v + Number.EPSILON) * 100) / 100;
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Lignes d'achat requises" }, { status: 400 });
   }
 
-  let supplier = null;
+  let supplier: Supplier | null = null;
   if (body.supplierId) {
     supplier = await db.supplier.findFirst({ where: { id: body.supplierId, tenantId } });
     if (!supplier) return NextResponse.json({ error: "Fournisseur introuvable" }, { status: 404 });
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
     const qty = Number(li.qty);
     if (qty <= 0) return NextResponse.json({ error: "Quantité invalide" }, { status: 400 });
     const unitPrice = Number(li.unitPrice);
-    const taxRate = li.taxRate !== undefined ? Number(li.taxRate) : product.taxRate;
+    const taxRate = li.taxRate !== undefined ? Number(li.taxRate) : Number(product.taxRate);
     const lineTotal = round2(qty * unitPrice);
     const lineTax = round2(lineTotal * taxRate / 100);
     subtotal = round2(subtotal + lineTotal);
@@ -92,6 +93,7 @@ export async function POST(req: Request) {
   }
   const total = round2(subtotal + taxTotal);
   const reference = await nextReference(tenantId, "ACH", db.purchase);
+  if (!supplier) return NextResponse.json({ error: "Fournisseur introuvable" }, { status: 400 });
 
   try {
     const created = await db.purchase.create({

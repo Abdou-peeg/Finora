@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { safeError } from "@/lib/errors";
 import { confirmSale, nextReference } from "@/lib/transactions";
 import { notify } from "@/lib/realtime-server";
+import type { Customer } from "@prisma/client";
 
 function round2(v: number) {
   return Math.round((v + Number.EPSILON) * 100) / 100;
@@ -48,30 +49,40 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Lignes de vente requises" }, { status: 400 });
   }
 
-  let customer = null;
+  let customer: Customer | null = null;
   if (body.customerId) {
     customer = await db.customer.findFirst({ where: { id: body.customerId, tenantId } });
     if (!customer) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
   } else {
-    const count = await db.customer.count({ where: { tenantId } });
-    customer = await db.customer.create({
-      data: {
-        tenantId,
-        code: `C-${String(count + 1).padStart(3, "0")}`,
-        name: body.customerName.trim(),
-      },
-    });
-    await db.auditLog.create({
-      data: {
-        tenantId,
-        userId: g.user.id,
-        userName: g.user.name,
-        action: "CREATE",
-        entity: "Customer",
-        entityId: customer.id,
-        details: `Client ${customer.code} - ${customer.name} créé automatiquement pour la vente.`,
-      },
-    });
+    const customerName = body.customerName.trim();
+    // The POS reuses one shared walk-in customer instead of creating a
+    // duplicate "Comptant" record for every sale.
+    if (body.posDefaultCustomer && customerName.toLocaleLowerCase() === "comptant") {
+      customer = await db.customer.findFirst({
+        where: { tenantId, name: { equals: "Comptant", mode: "insensitive" } },
+      });
+    }
+    if (!customer) {
+      const count = await db.customer.count({ where: { tenantId } });
+      customer = await db.customer.create({
+        data: {
+          tenantId,
+          code: `C-${String(count + 1).padStart(3, "0")}`,
+          name: body.customerName.trim(),
+        },
+      });
+      await db.auditLog.create({
+        data: {
+          tenantId,
+          userId: g.user.id,
+          userName: g.user.name,
+          action: "CREATE",
+          entity: "Customer",
+          entityId: customer.id,
+          details: `Client ${customer.code} - ${customer.name} créé automatiquement pour la vente.`,
+        },
+      });
+    }
   }
 
   // Compute totals
@@ -83,8 +94,8 @@ export async function POST(req: Request) {
     if (!product) return NextResponse.json({ error: `Produit ${li.productId} introuvable` }, { status: 400 });
     const qty = Number(li.qty);
     if (qty <= 0) return NextResponse.json({ error: "Quantité invalide" }, { status: 400 });
-    const unitPrice = li.unitPrice !== undefined ? Number(li.unitPrice) : product.salePrice;
-    const taxRate = li.taxRate !== undefined ? Number(li.taxRate) : product.taxRate;
+    const unitPrice = li.unitPrice !== undefined ? Number(li.unitPrice) : Number(product.salePrice);
+    const taxRate = li.taxRate !== undefined ? Number(li.taxRate) : Number(product.taxRate);
     const lineTotal = round2(qty * unitPrice);
     const lineTax = round2(lineTotal * taxRate / 100);
     subtotal = round2(subtotal + lineTotal);
@@ -99,6 +110,7 @@ export async function POST(req: Request) {
   }
   const total = round2(subtotal + taxTotal);
   const reference = await nextReference(tenantId, "VTE", db.sale);
+  if (!customer) return NextResponse.json({ error: "Client introuvable" }, { status: 400 });
 
   try {
     const created = await db.sale.create({

@@ -517,6 +517,7 @@ model PurchaseOrder {
   number     String
   supplierId String
   date       DateTime            @default(now())
+  expectedDate DateTime?
   status     PurchaseOrderStatus @default(DRAFT)
   subtotal   Decimal             @db.Decimal(14, 2)
   taxTotal   Decimal             @db.Decimal(14, 2)

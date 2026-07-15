@@ -9,6 +9,7 @@ import { ProductsView } from "@/components/views/products";
 import { CustomersView } from "@/components/views/customers";
 import { SuppliersView } from "@/components/views/suppliers";
 import { SalesView } from "@/components/views/sales";
+import { PosView } from "@/components/views/pos";
 import { PurchasesView } from "@/components/views/purchases";
 import { InvoicesView } from "@/components/views/invoices";
 import { CashView } from "@/components/views/cash";
@@ -58,6 +59,7 @@ if (expiredFromSession || expiredFromApi) {
       case "clients": return <CustomersView />;
       case "fournisseurs": return <SuppliersView />;
       case "ventes": return <SalesView />;
+      case "pos": return <PosView />;
       case "achats": return <PurchasesView />;
       case "factures": return <InvoicesView />;
       case "caisse": return <CashView />;

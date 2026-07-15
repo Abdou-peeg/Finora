@@ -78,7 +78,7 @@ export async function confirmSale(saleId: string, user: any) {
   return db.$transaction(async (tx) => {
     const sale = await tx.sale.findUnique({
       where: { id: saleId },
-      include: { items: true, tenant: true },
+      include: { items: true, tenant: true, invoice: true },
     });
     if (!sale) throw new Error("Vente introuvable");
     if (sale.status !== "DRAFT") throw new Error(`Vente déjà dans l'état ${sale.status}`);
@@ -111,8 +111,8 @@ export async function confirmSale(saleId: string, user: any) {
 
     // If the sale is linked to an invoice, the cash and accounting entries will be handled by the invoice payment.
     // Otherwise, create cash and accounting entries directly for the sale.
-    let je = null;
-    if (!sale.invoiceId) {
+    let je: { reference: string } | null = null;
+    if (!sale.invoice) {
       // 2. Cash entry (IN)
       const lastCash = await tx.cashEntry.findFirst({
         where: { tenantId: sale.tenantId },
@@ -179,7 +179,6 @@ export async function confirmSale(saleId: string, user: any) {
     });
 
     // 6. Notify (after tx commit hook)
-    tx.$on?.("commit" as any, () => {});
     void notify({
       tenantId: sale.tenantId,
       type: "sale.confirmed",
@@ -563,7 +562,7 @@ export async function payPayroll(payrollId: string, user: any) {
       include: { employee: true, tenant: true },
     });
     if (!payroll) throw new Error("Fiche de paie introuvable");
-    if (payroll.status === "PAID" || payroll.status === "CANCELLED")
+    if (payroll.status === "PAID")
       throw new Error(`Fiche de paie déjà ${payroll.status}`);
 
     const payrollNetSalary = n(payroll.netSalary);

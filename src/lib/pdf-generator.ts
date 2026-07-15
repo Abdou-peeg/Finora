@@ -123,7 +123,7 @@ function ensureSpace(doc: any, y: number, needed = 24): number {
  * du bas), même avec des coordonnées x/y explicites — c'est exactement ce qui
  * causait les pages vides. On neutralise donc temporairement la marge du bas
  * pendant l'écriture du footer, puis on la restaure. */
-function drawFooter(doc: any, tenant: Tenant, settings: CompanySettings | null) {
+function drawFooter(doc: any, tenant: Tenant, settings: CompanySettings | null, pageIndex?: number, pageCount?: number) {
   const originalBottomMargin = doc.page.margins.bottom;
   doc.page.margins.bottom = 0; // autorise l'écriture jusqu'au bord réel de la page
 
@@ -137,6 +137,9 @@ function drawFooter(doc: any, tenant: Tenant, settings: CompanySettings | null) 
     `Document généré par Finora ERP le ${new Intl.DateTimeFormat("fr-SN", { dateStyle: "long", timeStyle: "short" }).format(new Date())}`,
     40, footerY + 20, { width: 515, align: "center", lineBreak: false, ellipsis: true }
   );
+  if (pageIndex != null && pageCount != null) {
+    doc.text(`Page ${pageIndex + 1} / ${pageCount}`, 40, footerY + 20, { width: 515, align: "right", lineBreak: false, ellipsis: true });
+  }
 
   doc.page.margins.bottom = originalBottomMargin; // restaure pour le contenu de la page suivante
 }
@@ -436,11 +439,13 @@ export async function generateReportPdfDoc(input: ReportPdfInput): Promise<Buffe
       doc.font(FONT_REG).fontSize(8).fillColor(COLORS.muted).text(input.tenant.currency, 135, 60, { width: 300 });
 
       doc.font(FONT_BOLD).fontSize(16).fillColor(COLORS.primary).text(input.title, 40, 105, { width: 515 });
+      const headerBottom = input.subtitle ? 148 : 136;
       if (input.subtitle) {
         doc.font(FONT_REG).fontSize(9.5).fillColor(COLORS.muted).text(input.subtitle, 40, 128, { width: 515 });
       }
+      doc.moveTo(40, headerBottom).lineTo(555, headerBottom).lineWidth(0.5).strokeColor(COLORS.border).stroke();
       doc.font(FONT_OBL).fontSize(7.5).fillColor(COLORS.muted).text(
-        `Généré le ${dateFmt(input.generatedAt || new Date())}`, 40, 145, { width: 515 }
+        `Généré le ${dateFmt(input.generatedAt || new Date())}`, 40, headerBottom + 8, { width: 515 }
       );
 
       const tableTop = 172;
